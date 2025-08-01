@@ -612,63 +612,78 @@
         </div>
     </div>
 
-    <!-- Simple Working Chatbot Button -->
-    <button @click="chatbotVisible = !chatbotVisible" 
-            class="fixed bottom-5 right-5 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg z-50 flex items-center justify-center transition-all">
-        <i class="fas fa-comments text-xl"></i>
+
+
+
+    <!-- Simple Chatbot Button (Hidden by default, shows when closed) -->
+        <!-- Simple Chatbot Button (ONLY shows when chatbot is closed) -->
+    <button @click="toggleChatbot" 
+            x-show="!chatbotVisible"
+            class="fixed bottom-5 right-5 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg z-50 flex items-center justify-center transition-transform hover:scale-105">
+        <i class="fas fa-comments text-lg"></i>
     </button>
 
-
-
-    <!-- Simple Working Chatbot Popup -->
+<!-- Chatbot Popup (ONLY shows when chatbot is opened) -->
         <div x-show="chatbotVisible" 
-            x-transition
-            class="fixed bottom-20 right-5 w-80 h-96 bg-white rounded-lg shadow-xl z-40 flex flex-col">
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform scale-95"
+            x-transition:enter-end="opacity-100 transform scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform scale-100"
+            x-transition:leave-end="opacity-0 transform scale-95"
+            style="display: none;"
+            class="fixed bottom-20 right-5 w-80 h-96 bg-white rounded-lg shadow-2xl z-40 flex flex-col border border-gray-200">
             
-            <!-- Header -->
-            <div class="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
-                <span class="font-semibold">💬 MoneyMentor AI</span>
-                <button @click="chatbotVisible = false" class="text-white hover:text-gray-200">
+            <!-- Chatbot Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 rounded-t-lg flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-robot"></i>
+                    <span class="font-semibold text-sm">MoneyMentor AI</span>
+                    <span class="bg-green-400 text-green-900 text-xs px-2 py-0.5 rounded-full">Online</span>
+                </div>
+                <button @click="toggleChatbot" class="text-white hover:text-gray-200 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <!-- Messages -->
+            <!-- Chat Messages Area -->
             <div class="flex-1 p-3 overflow-y-auto bg-gray-50" id="chatMessages">
                 <template x-for="(message, index) in chatMessages" :key="index">
-                    <div :class="message.sender === 'user' ? 'text-right mb-2' : 'text-left mb-2'">
+                    <div :class="message.sender === 'user' ? 'flex justify-end mb-2' : 'flex justify-start mb-2'">
                         <div :class="message.sender === 'user' ? 
-                            'inline-block bg-blue-500 text-white px-3 py-2 rounded-lg max-w-xs' : 
-                            'inline-block bg-white border px-3 py-2 rounded-lg max-w-xs'">
-                            <p class="text-sm" x-text="message.text"></p>
-                            <p class="text-xs opacity-75 mt-1" x-text="message.time"></p>
+                            'bg-blue-500 text-white px-3 py-2 rounded-lg max-w-xs text-sm shadow-sm' : 
+                            'bg-white border border-gray-200 px-3 py-2 rounded-lg max-w-xs text-sm shadow-sm'">
+                            <p x-text="message.text" class="whitespace-pre-wrap"></p>
+                            <p class="text-xs opacity-70 mt-1" x-text="message.time"></p>
                         </div>
                     </div>
                 </template>
                 
+                <!-- Welcome message when no chats -->
                 <div x-show="chatMessages.length === 0" class="text-center py-8 text-gray-500">
-                    <p class="text-sm">👋 Hi! Ask me about your finances!</p>
+                    <i class="fas fa-robot text-3xl mb-2 text-blue-400"></i>
+                    <p class="text-sm font-medium">Hi! I'm your AI financial assistant</p>
+                    <p class="text-xs mt-1">Ask me anything about your finances!</p>
                 </div>
             </div>
             
-            <!-- Input -->
-            <div class="p-3 border-t bg-white rounded-b-lg">
+            <!-- Chat Input Area -->
+            <div class="p-3 border-t border-gray-200 bg-white rounded-b-lg">
                 <div class="flex space-x-2">
                     <input type="text" 
                         x-model="chatInput" 
                         @keydown.enter="sendChatMessage"
                         placeholder="Type your question..."
-                        class="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500">
+                        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     <button @click="sendChatMessage" 
                             :disabled="!chatInput.trim() || chatLoading"
-                            class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:bg-gray-400">
-                        <i x-show="!chatLoading" class="fas fa-paper-plane"></i>
-                        <i x-show="chatLoading" class="fas fa-spinner fa-spin"></i>
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-w-[44px]">
+                        <i x-show="!chatLoading" class="fas fa-paper-plane text-sm"></i>
+                        <i x-show="chatLoading" class="fas fa-spinner fa-spin text-sm"></i>
                     </button>
                 </div>
             </div>
         </div>
-
 
 
 
@@ -678,11 +693,18 @@
             function healthScoreData() {
                 return {
                     healthScore: 75,
-                    scores: { emergency: 20, savings: 18, goals: 22, investments: 15 },
+                    scores: {
+                        emergency: 20,
+                        savings: 18,
+                        goals: 22,
+                        investments: 15
+                    },
+                    
                     getHealthScoreText() {
-                        return this.healthScore >= 80 ? 'Excellent' : 
-                            this.healthScore >= 60 ? 'Good' : 
-                            this.healthScore >= 40 ? 'Fair' : 'Needs Improvement';
+                        if (this.healthScore >= 80) return 'Excellent Financial Health';
+                        else if (this.healthScore >= 60) return 'Good Financial Health';
+                        else if (this.healthScore >= 40) return 'Fair Financial Health';
+                        else return 'Needs Improvement';
                     }
                 }
             }
