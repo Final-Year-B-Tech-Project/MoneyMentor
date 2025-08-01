@@ -770,9 +770,20 @@
                 healthRecommendations: [],
                 
                 // Computed Properties
-                get isValidIncome() {
-                    return this.financialData.income > 0 && this.financialData.income <= 100000000;
+                validateIncome() {
+                    this.errors.income = '';
+                    if (!this.financialData.income) {
+                        this.errors.income = 'Please enter your monthly income';
+                    } else if (this.financialData.income < 5000) {
+                        this.errors.income = 'Minimum income should be ₹5,000';
+                    } else if (this.financialData.income > 100000000) {
+                        this.errors.income = 'Please enter a realistic income amount';
+                    }
+                    
+                    // ADD THIS LINE:
+                    if (!this.errors.income) this.updateHealthScore();
                 },
+
                 
                 // Validation Methods
                 validateIncome() {
@@ -790,7 +801,10 @@
                     if (this.planGenerated) {
                         this.generateFinancialPlan();
                     }
+                    // ADD THIS LINE:
+                    this.updateHealthScore();
                 },
+
                 
                 getRiskDescription() {
                     const descriptions = {
@@ -1191,13 +1205,17 @@
                 
                 // FIXED: Health Score Methods (integrated)
                 updateHealthScore() {
+                    console.log('Updating health score...'); // Debug line
+                    
                     const financialData = {
-                        income: this.financialData.income,
-                        riskAppetite: this.financialData.riskAppetite,
-                        monthlySavings: this.metrics.monthlySavings,
-                        emergencyFund: this.metrics.emergencyFund,
-                        planGenerated: this.planGenerated
+                        income: this.financialData.income || 0,
+                        riskAppetite: this.financialData.riskAppetite || 'moderate',
+                        monthlySavings: this.metrics.monthlySavings || 0,
+                        emergencyFund: this.metrics.emergencyFund || 0,
+                        planGenerated: this.planGenerated || false
                     };
+                    
+                    console.log('Financial data:', financialData); // Debug line
                     
                     const emergencyScore = this.calculateEmergencyScore(financialData);
                     const savingsScore = this.calculateSavingsScore(financialData);
@@ -1212,8 +1230,12 @@
                     };
                     
                     this.healthScore = emergencyScore + savingsScore + goalsScore + investmentsScore;
+                    
+                    console.log('New health score:', this.healthScore); // Debug line
+                    
                     this.updateHealthRecommendations();
                 },
+
                 
                 calculateEmergencyScore(financialData) {
                     const income = financialData.income || 0;
