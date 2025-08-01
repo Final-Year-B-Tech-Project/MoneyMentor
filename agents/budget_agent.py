@@ -1,301 +1,298 @@
+from datetime import datetime
+
 class BudgetAgent:
     def __init__(self):
-        # Updated budget rules based on income levels and practical spending patterns
+        # Improved budget rules based on income levels
         self.budget_templates = {
             'low_income': {  # Up to ₹50,000
-                'needs': 0.65,     # Higher needs percentage for basic living
-                'wants': 0.20,     # Limited discretionary spending
-                'savings': 0.15,   # Start building savings habit
-                'emergency_source': 'savings'  # Emergency from savings portion
+                'needs': 0.60,
+                'wants': 0.25, 
+                'savings': 0.10,
+                'emergency_fund_rate': 0.05,  # 5% for emergency fund
+                'emergency_months': 4  # 4 months for low income
             },
             'middle_income': {  # ₹50,000 - ₹2,00,000
-                'needs': 0.50,     # Standard 50/30/20 rule
+                'needs': 0.50,
                 'wants': 0.30,
-                'savings': 0.20,
-                'emergency_source': 'wants'  # Can reduce wants for emergency
+                'savings': 0.15,
+                'emergency_fund_rate': 0.05,
+                'emergency_months': 6  # 6 months standard
             },
             'upper_middle': {  # ₹2,00,000 - ₹5,00,000
-                'needs': 0.40,     # Reduced needs percentage
-                'wants': 0.35,     # More lifestyle spending
-                'savings': 0.25,   # Higher savings capacity
-                'emergency_source': 'wants'
+                'needs': 0.45,
+                'wants': 0.30,
+                'savings': 0.20,
+                'emergency_fund_rate': 0.05,
+                'emergency_months': 6
             },
             'high_income': {  # ₹5,00,000+
-                'needs': 0.30,     # Much lower needs percentage
-                'wants': 0.40,     # Higher lifestyle and luxury spending
-                'savings': 0.30,   # Aggressive savings and investments
-                'emergency_source': 'wants'
+                'needs': 0.40,
+                'wants': 0.35,
+                'savings': 0.20,
+                'emergency_fund_rate': 0.05,
+                'emergency_months': 6
             }
         }
         
         # Risk appetite adjustments
         self.risk_adjustments = {
             'conservative': {
-                'emergency_multiplier': 1.2,  # 20% more emergency fund
-                'savings_boost': 0.05,        # 5% more to savings from wants
-                'investment_preference': 'debt_heavy'
+                'savings_boost': 0.02,  # 2% more to savings
+                'wants_reduction': 0.02,
+                'emergency_months_boost': 1  # Extra month
             },
             'moderate': {
-                'emergency_multiplier': 1.0,  # Standard emergency fund
-                'savings_boost': 0.0,         # No adjustment
-                'investment_preference': 'balanced'
+                'savings_boost': 0.0,
+                'wants_reduction': 0.0,
+                'emergency_months_boost': 0
             },
             'aggressive': {
-                'emergency_multiplier': 0.8,  # 20% less emergency fund
-                'savings_boost': -0.03,       # 3% less to savings (more wants)
-                'investment_preference': 'equity_heavy'
+                'savings_boost': 0.03,  # 3% more to savings
+                'wants_reduction': 0.03,
+                'emergency_months_boost': -1  # One month less
             }
         }
     
     def calculate_budget(self, monthly_income, risk_appetite='moderate'):
-        """Calculate budget based on income level and risk appetite"""
+        """Calculate budget with proper logic for all income levels"""
         
         # Determine income category
         income_category = self.get_income_category(monthly_income)
         base_template = self.budget_templates[income_category]
         risk_adjustment = self.risk_adjustments.get(risk_appetite, self.risk_adjustments['moderate'])
         
-        # Apply risk-based adjustments
+        # Apply risk adjustments
         adjusted_needs = base_template['needs']
-        adjusted_wants = base_template['wants'] - risk_adjustment['savings_boost']
+        adjusted_wants = base_template['wants'] - risk_adjustment['wants_reduction']
         adjusted_savings = base_template['savings'] + risk_adjustment['savings_boost']
+        emergency_months = base_template['emergency_months'] + risk_adjustment['emergency_months_boost']
         
-        # Ensure percentages don't go negative
+        # Ensure percentages are reasonable
         adjusted_wants = max(0.10, adjusted_wants)  # Minimum 10% for wants
         adjusted_savings = max(0.10, adjusted_savings)  # Minimum 10% for savings
+        emergency_months = max(3, emergency_months)  # Minimum 3 months
         
-        # Calculate emergency fund
-        emergency_months = 6 * risk_adjustment['emergency_multiplier']
-        emergency_fund_needed = monthly_income * emergency_months
+        # Calculate amounts
+        needs_amount = monthly_income * adjusted_needs
+        wants_amount = monthly_income * adjusted_wants  
+        savings_amount = monthly_income * adjusted_savings
+        emergency_fund_target = monthly_income * emergency_months
+        emergency_monthly = monthly_income * base_template['emergency_fund_rate']
         
         budget = {
             'monthly_income': monthly_income,
             'income_category': income_category,
             'risk_profile': risk_appetite,
+            
             'needs': {
-                'amount': monthly_income * adjusted_needs,
+                'amount': needs_amount,
                 'percentage': adjusted_needs * 100,
-                'categories': self.get_needs_breakdown(monthly_income, adjusted_needs),
-                'description': 'Essential expenses like rent, food, utilities, transport'
+                'description': 'Essential expenses: rent, food, transport, utilities',
+                'categories': self.get_needs_breakdown(needs_amount, income_category)
             },
+            
             'wants': {
-                'amount': monthly_income * adjusted_wants,
+                'amount': wants_amount,
                 'percentage': adjusted_wants * 100,
-                'categories': self.get_wants_breakdown(monthly_income, adjusted_wants, income_category),
-                'description': 'Lifestyle expenses, entertainment, dining out, shopping'
+                'description': 'Lifestyle expenses: entertainment, dining out, shopping',
+                'categories': self.get_wants_breakdown(wants_amount, income_category)
             },
+            
             'savings': {
-                'amount': monthly_income * adjusted_savings,
+                'amount': savings_amount,
                 'percentage': adjusted_savings * 100,
-                'categories': self.get_savings_breakdown(monthly_income, adjusted_savings, risk_appetite),
-                'description': 'Investments, emergency fund, retirement savings'
+                'description': 'Long-term wealth building investments (NOT emergency fund)',
+                'categories': self.get_savings_breakdown(savings_amount, risk_appetite)
             },
+            
             'emergency_fund': {
-                'target_amount': emergency_fund_needed,
+                'target_amount': emergency_fund_target,
                 'months_coverage': emergency_months,
-                'monthly_allocation': min(monthly_income * 0.05, emergency_fund_needed / 24),  # Build over 2 years max
-                'source': base_template['emergency_source'],
-                'priority': 'high' if emergency_months > 6 else 'medium'
+                'monthly_contribution': emergency_monthly,
+                'percentage_of_income': base_template['emergency_fund_rate'] * 100,
+                'storage_options': self.get_emergency_storage_options(),
+                'separate_from_investments': True,
+                'priority': 'HIGHEST - Build this first!',
+                'description': f'Safety net for job loss, medical emergencies - keep in bank/liquid funds'
             },
+            
             'recommendations': self.get_practical_recommendations(monthly_income, income_category, risk_appetite),
-            'investment_strategy': risk_adjustment['investment_preference']
+            'monthly_commitment': needs_amount + wants_amount + savings_amount + emergency_monthly
         }
         
         return budget
     
     def get_income_category(self, monthly_income):
-        """Determine income category"""
+        """Categorize income level"""
         if monthly_income <= 50000:
             return 'low_income'
         elif monthly_income <= 200000:
-            return 'middle_income'
+            return 'middle_income'  
         elif monthly_income <= 500000:
             return 'upper_middle'
         else:
             return 'high_income'
     
-    def get_needs_breakdown(self, monthly_income, needs_percentage):
-        """Get practical needs breakdown based on income level"""
-        needs_amount = monthly_income * needs_percentage
-        
-        if monthly_income <= 50000:
-            return [
-                {'name': 'Rent/House EMI', 'amount': needs_amount * 0.40, 'percentage': 40},
-                {'name': 'Food & Groceries', 'amount': needs_amount * 0.25, 'percentage': 25},
-                {'name': 'Transport', 'amount': needs_amount * 0.15, 'percentage': 15},
-                {'name': 'Utilities (Electricity, Phone)', 'amount': needs_amount * 0.10, 'percentage': 10},
-                {'name': 'Basic Healthcare', 'amount': needs_amount * 0.10, 'percentage': 10}
-            ]
-        elif monthly_income <= 200000:
-            return [
-                {'name': 'Rent/House EMI', 'amount': needs_amount * 0.35, 'percentage': 35},
-                {'name': 'Food & Groceries', 'amount': needs_amount * 0.20, 'percentage': 20},
-                {'name': 'Transport', 'amount': needs_amount * 0.15, 'percentage': 15},
-                {'name': 'Utilities & Bills', 'amount': needs_amount * 0.15, 'percentage': 15},
-                {'name': 'Insurance & Healthcare', 'amount': needs_amount * 0.15, 'percentage': 15}
-            ]
-        else:  # High income
-            return [
-                {'name': 'Housing (Rent/EMI)', 'amount': needs_amount * 0.30, 'percentage': 30},
-                {'name': 'Food & Household', 'amount': needs_amount * 0.20, 'percentage': 20},
-                {'name': 'Transport & Car', 'amount': needs_amount * 0.20, 'percentage': 20},
-                {'name': 'Utilities & Services', 'amount': needs_amount * 0.15, 'percentage': 15},
-                {'name': 'Insurance & Health', 'amount': needs_amount * 0.15, 'percentage': 15}
-            ]
-    
-    def get_wants_breakdown(self, monthly_income, wants_percentage, income_category):
-        """Get wants breakdown based on income level"""
-        wants_amount = monthly_income * wants_percentage
-        
+    def get_needs_breakdown(self, needs_amount, income_category):
+        """Realistic needs breakdown"""
         if income_category == 'low_income':
             return [
-                {'name': 'Entertainment & Movies', 'amount': wants_amount * 0.30, 'percentage': 30},
-                {'name': 'Eating Out', 'amount': wants_amount * 0.25, 'percentage': 25},
-                {'name': 'Shopping & Clothing', 'amount': wants_amount * 0.25, 'percentage': 25},
-                {'name': 'Personal Care', 'amount': wants_amount * 0.20, 'percentage': 20}
+                {'category': 'Housing (Rent/EMI)', 'amount': needs_amount * 0.40, 'percentage': 40},
+                {'category': 'Food & Groceries', 'amount': needs_amount * 0.30, 'percentage': 30},
+                {'category': 'Transport', 'amount': needs_amount * 0.15, 'percentage': 15},
+                {'category': 'Utilities & Bills', 'amount': needs_amount * 0.10, 'percentage': 10},
+                {'category': 'Basic Insurance', 'amount': needs_amount * 0.05, 'percentage': 5}
             ]
         elif income_category in ['middle_income', 'upper_middle']:
             return [
-                {'name': 'Dining & Restaurants', 'amount': wants_amount * 0.25, 'percentage': 25},
-                {'name': 'Entertainment & Hobbies', 'amount': wants_amount * 0.20, 'percentage': 20},
-                {'name': 'Travel & Vacation', 'amount': wants_amount * 0.20, 'percentage': 20},
-                {'name': 'Shopping & Lifestyle', 'amount': wants_amount * 0.20, 'percentage': 20},
-                {'name': 'Gadgets & Electronics', 'amount': wants_amount * 0.15, 'percentage': 15}
+                {'category': 'Housing (Rent/EMI)', 'amount': needs_amount * 0.35, 'percentage': 35},
+                {'category': 'Food & Groceries', 'amount': needs_amount * 0.25, 'percentage': 25},
+                {'category': 'Transport & Commute', 'amount': needs_amount * 0.15, 'percentage': 15},
+                {'category': 'Utilities & Bills', 'amount': needs_amount * 0.12, 'percentage': 12},
+                {'category': 'Insurance & Healthcare', 'amount': needs_amount * 0.13, 'percentage': 13}
             ]
-        else:  # High income
+        else:  # high_income
             return [
-                {'name': 'Travel & Vacation', 'amount': wants_amount * 0.30, 'percentage': 30},
-                {'name': 'Fine Dining & Premium Experiences', 'amount': wants_amount * 0.20, 'percentage': 20},
-                {'name': 'Luxury Shopping', 'amount': wants_amount * 0.20, 'percentage': 20},
-                {'name': 'Premium Services & Memberships', 'amount': wants_amount * 0.15, 'percentage': 15},
-                {'name': 'Gadgets & Technology', 'amount': wants_amount * 0.15, 'percentage': 15}
+                {'category': 'Housing (Rent/EMI)', 'amount': needs_amount * 0.30, 'percentage': 30},
+                {'category': 'Food & Household', 'amount': needs_amount * 0.20, 'percentage': 20},
+                {'category': 'Transport & Car', 'amount': needs_amount * 0.20, 'percentage': 20},
+                {'category': 'Utilities & Services', 'amount': needs_amount * 0.15, 'percentage': 15},
+                {'category': 'Insurance & Healthcare', 'amount': needs_amount * 0.15, 'percentage': 15}
             ]
     
-    def get_savings_breakdown(self, monthly_income, savings_percentage, risk_appetite):
-        """Get savings breakdown based on risk appetite"""
-        savings_amount = monthly_income * savings_percentage
-        
+    def get_wants_breakdown(self, wants_amount, income_category):
+        """Lifestyle wants breakdown"""
+        if income_category == 'low_income':
+            return [
+                {'category': 'Entertainment & Movies', 'amount': wants_amount * 0.35, 'percentage': 35},
+                {'category': 'Eating Out', 'amount': wants_amount * 0.25, 'percentage': 25},
+                {'category': 'Shopping & Clothing', 'amount': wants_amount * 0.25, 'percentage': 25},
+                {'category': 'Personal Care & Hobbies', 'amount': wants_amount * 0.15, 'percentage': 15}
+            ]
+        elif income_category in ['middle_income', 'upper_middle']:
+            return [
+                {'category': 'Dining & Restaurants', 'amount': wants_amount * 0.30, 'percentage': 30},
+                {'category': 'Entertainment & Hobbies', 'amount': wants_amount * 0.25, 'percentage': 25},
+                {'category': 'Shopping & Lifestyle', 'amount': wants_amount * 0.20, 'percentage': 20},
+                {'category': 'Travel & Weekend Trips', 'amount': wants_amount * 0.15, 'percentage': 15},
+                {'category': 'Gadgets & Electronics', 'amount': wants_amount * 0.10, 'percentage': 10}
+            ]
+        else:  # high_income
+            return [
+                {'category': 'Travel & Vacations', 'amount': wants_amount * 0.35, 'percentage': 35},
+                {'category': 'Fine Dining & Entertainment', 'amount': wants_amount * 0.25, 'percentage': 25},
+                {'category': 'Luxury Shopping', 'amount': wants_amount * 0.20, 'percentage': 20},
+                {'category': 'Premium Services', 'amount': wants_amount * 0.12, 'percentage': 12},
+                {'category': 'Gadgets & Technology', 'amount': wants_amount * 0.08, 'percentage': 8}
+            ]
+    
+    def get_savings_breakdown(self, savings_amount, risk_appetite):
+        """Investment allocation based on risk"""
         if risk_appetite == 'conservative':
             return [
-                {'name': 'Fixed Deposits', 'amount': savings_amount * 0.30, 'percentage': 30, 'type': 'safe'},
-                {'name': 'PPF (Public Provident Fund)', 'amount': savings_amount * 0.25, 'percentage': 25, 'type': 'safe'},
-                {'name': 'Safe Mutual Funds', 'amount': savings_amount * 0.20, 'percentage': 20, 'type': 'moderate'},
-                {'name': 'NSC & Government Bonds', 'amount': savings_amount * 0.15, 'percentage': 15, 'type': 'safe'},
-                {'name': 'Emergency Fund', 'amount': savings_amount * 0.10, 'percentage': 10, 'type': 'liquid'}
+                {'category': 'PPF (Tax Saving)', 'amount': savings_amount * 0.30, 'percentage': 30, 'risk': 'Safe'},
+                {'category': 'Fixed Deposits', 'amount': savings_amount * 0.25, 'percentage': 25, 'risk': 'Safe'},
+                {'category': 'Debt Mutual Funds', 'amount': savings_amount * 0.25, 'percentage': 25, 'risk': 'Low'},
+                {'category': 'Large Cap Equity Funds', 'amount': savings_amount * 0.20, 'percentage': 20, 'risk': 'Moderate'}
             ]
         elif risk_appetite == 'moderate':
             return [
-                {'name': 'Mutual Funds (Mixed)', 'amount': savings_amount * 0.40, 'percentage': 40, 'type': 'moderate'},
-                {'name': 'PPF', 'amount': savings_amount * 0.20, 'percentage': 20, 'type': 'safe'},
-                {'name': 'ELSS (Tax Saving)', 'amount': savings_amount * 0.15, 'percentage': 15, 'type': 'moderate'},
-                {'name': 'Fixed Deposits', 'amount': savings_amount * 0.15, 'percentage': 15, 'type': 'safe'},
-                {'name': 'Emergency Fund', 'amount': savings_amount * 0.10, 'percentage': 10, 'type': 'liquid'}
+                {'category': 'Large Cap Equity Funds', 'amount': savings_amount * 0.40, 'percentage': 40, 'risk': 'Moderate'},
+                {'category': 'ELSS (Tax Saving)', 'amount': savings_amount * 0.20, 'percentage': 20, 'risk': 'Moderate'},
+                {'category': 'Mid Cap Funds', 'amount': savings_amount * 0.20, 'percentage': 20, 'risk': 'High'},
+                {'category': 'Debt Funds', 'amount': savings_amount * 0.20, 'percentage': 20, 'risk': 'Low'}
             ]
-        else:  # Aggressive
+        else:  # aggressive
             return [
-                {'name': 'Stock Market & Equity Funds', 'amount': savings_amount * 0.50, 'percentage': 50, 'type': 'high_risk'},
-                {'name': 'Growth Mutual Funds', 'amount': savings_amount * 0.25, 'percentage': 25, 'type': 'moderate'},
-                {'name': 'ELSS (Tax Saving)', 'amount': savings_amount * 0.15, 'percentage': 15, 'type': 'moderate'},
-                {'name': 'Emergency Fund', 'amount': savings_amount * 0.10, 'percentage': 10, 'type': 'liquid'}
+                {'category': 'Mid & Small Cap Funds', 'amount': savings_amount * 0.40, 'percentage': 40, 'risk': 'High'},
+                {'category': 'Large Cap Equity Funds', 'amount': savings_amount * 0.30, 'percentage': 30, 'risk': 'Moderate'},
+                {'category': 'ELSS (Tax Saving)', 'amount': savings_amount * 0.20, 'percentage': 20, 'risk': 'Moderate'},
+                {'category': 'International Funds', 'amount': savings_amount * 0.10, 'percentage': 10, 'risk': 'High'}
             ]
     
+    def get_emergency_storage_options(self):
+        """Emergency fund storage recommendations"""
+        return [
+            {
+                'option': 'High-Yield Savings Account',
+                'percentage': 50,
+                'liquidity': 'Instant',
+                'returns': '3.5-4.0%',
+                'pros': 'Instant access, ATM cards, UPI, safe',
+                'cons': 'Lower returns'
+            },
+            {
+                'option': 'Liquid Mutual Funds', 
+                'percentage': 30,
+                'liquidity': 'Same day (before 1 PM)',
+                'returns': '4.0-4.5%',
+                'pros': 'Better returns than savings account',
+                'cons': 'Same day redemption limit'
+            },
+            {
+                'option': 'Fixed Deposits (Short-term)',
+                'percentage': 20,
+                'liquidity': '7-30 days',
+                'returns': '5.0-6.0%',
+                'pros': 'Higher returns, safe',
+                'cons': 'Penalty for early withdrawal'
+            }
+        ]
+    
     def get_practical_recommendations(self, monthly_income, income_category, risk_appetite):
-        """Get practical, easy-to-understand recommendations"""
+        """Realistic, actionable recommendations"""
         recommendations = []
         
-        # Income-based recommendations
+        # Income-specific advice
         if income_category == 'low_income':
             recommendations.extend([
-                "🏠 Keep housing cost under 40% of income to avoid financial stress",
-                "🚌 Use public transport or shared rides to save money",
-                "🍳 Cook at home more often - it's healthier and cheaper",
-                "💰 Start with small savings of ₹1000-2000 per month",
-                "📱 Use free apps to track your daily expenses",
-                "🏥 Get basic health insurance - medical bills can be expensive"
+                "🏠 Keep housing cost under 40% of income (₹{:,}) to avoid financial stress".format(int(monthly_income * 0.40)),
+                "🚌 Use public transport or shared rides to save on commute costs",
+                "🍳 Cook at home more - can save ₹3,000-5,000 monthly on food",
+                "💰 Build emergency fund of ₹{:,} gradually - start with ₹{:,}/month".format(int(monthly_income * 4), int(monthly_income * 0.05)),
+                "📱 Use expense tracking apps to monitor daily spending",
+                "🏥 Get basic health insurance - medical bills can drain savings quickly"
             ])
         elif income_category == 'middle_income':
             recommendations.extend([
-                "🏡 Your housing should not exceed ₹" + f"{int(monthly_income * 0.35):,}" + " per month",
-                "🚗 If you have a car loan, total transport cost should be under 15%",
-                "💳 Start systematic investments (SIP) of ₹5,000-10,000 monthly",
-                "🛡️ Get comprehensive health and term life insurance",
-                "💰 Build emergency fund of ₹" + f"{int(monthly_income * 6):,}" + " in 2 years",
-                "📊 Review and adjust your budget every 3 months"
+                "🏡 Housing should not exceed ₹{:,} monthly for financial comfort".format(int(monthly_income * 0.35)),
+                "💳 Start SIP of ₹{:,}-{:,} monthly in diversified mutual funds".format(int(monthly_income * 0.10), int(monthly_income * 0.15)),
+                "🛡️ Get comprehensive health insurance and term life insurance",
+                "💰 Target emergency fund of ₹{:,} in 18-24 months".format(int(monthly_income * 6)),
+                "📊 Review and rebalance investments every 6 months",
+                "🎯 Set specific financial goals with timelines"
             ])
-        else:  # High income
+        else:  # upper_middle and high_income
             recommendations.extend([
-                "💼 You can afford premium lifestyle but don't ignore investments",
-                "🏠 Consider buying property if you don't own one",
-                "📈 Invest aggressively in equity for wealth building",
-                "💰 Emergency fund: ₹" + f"{int(monthly_income * 6):,}" + " is sufficient",
-                "🏦 Consider multiple income sources and tax-saving investments",
-                "👨‍💼 Hire a financial advisor for complex investment strategies"
+                "💼 You have good earning potential - don't let lifestyle inflation eat all increases",
+                "🏠 Consider buying property if you don't own one and plan to stay in city",
+                "📈 Invest aggressively in equity for wealth building - target ₹{:,}/month SIP".format(int(monthly_income * 0.20)),
+                "💰 Emergency fund target: ₹{:,} - keep in easily accessible options".format(int(monthly_income * 6)),
+                "🏦 Consider multiple investment avenues and tax-saving instruments",
+                "👨‍💼 Consult a fee-only financial advisor for complex planning"
             ])
         
-        # Risk-based recommendations
+        # Risk-specific advice
         if risk_appetite == 'conservative':
             recommendations.extend([
-                "🔒 Focus on safe investments like PPF, FD, and Government bonds",
-                "📈 Start with debt mutual funds before moving to equity",
-                "💰 Keep 8-9 months of expenses as emergency fund"
+                "🔒 Focus on PPF, ELSS, and debt funds for steady growth",
+                "📈 Start with large-cap equity funds before mid/small-cap",
+                "💰 Keep slightly higher emergency fund (extra month)"
             ])
         elif risk_appetite == 'aggressive':
             recommendations.extend([
-                "📊 Invest heavily in stock market and equity funds for growth",
-                "⏰ You can take risks for higher returns over 5-10 years",
-                "💰 4-5 months emergency fund is enough for you"
+                "📊 Invest heavily in equity funds for maximum long-term growth",
+                "⏰ Stay invested for 5+ years to ride out market volatility",
+                "💰 You can manage with 5 months emergency fund due to risk tolerance"
             ])
         
         # Universal recommendations
         recommendations.extend([
-            "📱 Use UPI apps for cashless transactions - helps track spending",
-            "📊 Review your budget monthly and adjust as needed",
-            "🎯 Set specific financial goals like 'buy car in 3 years'",
-            "📚 Learn basics of investing - start with simple mutual funds"
+            "📱 Set up auto-debit for SIPs - consistency is key to wealth building",
+            "📊 Review your budget quarterly and adjust as income grows",
+            "🎯 Have specific goals: 'Buy car in 3 years' not just 'save money'",
+            "📚 Learn basics of investing - start with mutual funds before direct stocks",
+            "🚨 NEVER invest emergency fund in risky assets - it's your safety net!"
         ])
         
         return recommendations
-    
-    def calculate_emergency_fund_strategy(self, monthly_income, wants_amount, risk_appetite):
-        """Calculate how to build emergency fund practically"""
-        target_months = 6 if risk_appetite != 'conservative' else 8
-        target_amount = monthly_income * target_months
-        
-        # Emergency fund should come from wants category, not additional burden
-        max_monthly_allocation = wants_amount * 0.20  # 20% of wants money
-        months_to_build = target_amount / max_monthly_allocation
-        
-        return {
-            'target_amount': target_amount,
-            'target_months_coverage': target_months,
-            'monthly_allocation': max_monthly_allocation,
-            'time_to_build_months': int(months_to_build),
-            'source': 'Reduce entertainment and dining out by this amount',
-            'strategy': f"Save ₹{int(max_monthly_allocation):,} monthly by cutting discretionary spending"
-        }
-    
-    def validate_budget_logic(self, budget):
-        """Validate that the budget makes practical sense"""
-        issues = []
-        monthly_income = budget['monthly_income']
-        
-        # Check if housing cost is reasonable
-        housing_cost = budget['needs']['categories'][0]['amount']  # First category is housing
-        if housing_cost > monthly_income * 0.5:
-            issues.append("Housing cost is too high - should not exceed 50% of income")
-        
-        # Check if total allocations equal 100%
-        total_percentage = budget['needs']['percentage'] + budget['wants']['percentage'] + budget['savings']['percentage']
-        if abs(total_percentage - 100) > 1:  # Allow 1% variance for rounding
-            issues.append(f"Budget percentages don't add up to 100% (currently {total_percentage:.1f}%)")
-        
-        # Check if emergency fund allocation is reasonable
-        emergency_monthly = budget['emergency_fund']['monthly_allocation']
-        if emergency_monthly > monthly_income * 0.10:
-            issues.append("Emergency fund allocation is too high - reduce to 10% of income max")
-        
-        return {
-            'is_valid': len(issues) == 0,
-            'issues': issues,
-            'validation_passed': len(issues) == 0
-        }

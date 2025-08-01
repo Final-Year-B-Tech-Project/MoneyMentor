@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoneyMentor - Your Personal Financial Guide</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -612,104 +612,80 @@
         </div>
     </div>
 
-    <!-- Fixed Chatbot Icon (Always Visible) -->
-    <button class="chat-icon" @click="toggleChatbot" :class="{ 'hidden': chatbotVisible }">
-        <i class="fas fa-comments text-2xl"></i>
+    <!-- Simple Working Chatbot Button -->
+    <button @click="chatbotVisible = !chatbotVisible" 
+            class="fixed bottom-5 right-5 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg z-50 flex items-center justify-center transition-all">
+        <i class="fas fa-comments text-xl"></i>
     </button>
 
-    <!-- Chatbot Popup (Hidden by Default) -->
-    <div class="chatbot-popup" :class="{ 'hidden': !chatbotVisible }" x-show="chatbotVisible" x-transition>
-        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg flex justify-between items-center">
-            <div class="flex items-center">
-                <i class="fas fa-robot mr-2"></i>
-                <span class="font-semibold">MoneyMentor AI</span>
-            </div>
-            <button @click="toggleChatbot" class="text-white hover:text-gray-200">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="p-4 h-80 overflow-y-auto bg-gray-50" id="chatMessages">
-            <template x-for="(message, index) in chatMessages" :key="index">
-                <div :class="message.sender === 'user' ? 'flex justify-end mb-3' : 'flex justify-start mb-3'">
-                    <div :class="message.sender === 'user' ? 
-                        'bg-blue-600 text-white rounded-lg px-4 py-2 max-w-xs' : 
-                        'bg-white text-gray-800 rounded-lg px-4 py-2 max-w-xs border'">
-                        <p class="text-sm" x-html="message.text"></p>
-                        <p class="text-xs opacity-75 mt-1" x-text="message.time"></p>
-                    </div>
-                </div>
-            </template>
+
+
+    <!-- Simple Working Chatbot Popup -->
+        <div x-show="chatbotVisible" 
+            x-transition
+            class="fixed bottom-20 right-5 w-80 h-96 bg-white rounded-lg shadow-xl z-40 flex flex-col">
             
-            <div x-show="chatMessages.length === 0" class="text-center py-8 text-gray-500">
-                <i class="fas fa-robot text-3xl mb-2"></i>
-                <p class="text-sm">Hi! I'm your financial assistant.</p>
-                <p class="text-xs mt-1">Ask me about your budget, investments, or goals!</p>
-            </div>
-        </div>
-        
-        <div class="p-4 bg-white rounded-b-lg border-t">
-            <div class="flex space-x-2">
-                <input type="text" 
-                       x-model="chatInput" 
-                       @keydown.enter="sendChatMessage"
-                       placeholder="Ask about your finances..."
-                       class="flex-1 border rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                <button @click="sendChatMessage" 
-                        :disabled="!chatInput.trim() || chatLoading"
-                        class="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 disabled:bg-gray-400">
-                    <i x-show="!chatLoading" class="fas fa-paper-plane"></i>
-                    <i x-show="chatLoading" class="fas fa-spinner fa-spin"></i>
+            <!-- Header -->
+            <div class="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
+                <span class="font-semibold">💬 MoneyMentor AI</span>
+                <button @click="chatbotVisible = false" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
+            
+            <!-- Messages -->
+            <div class="flex-1 p-3 overflow-y-auto bg-gray-50" id="chatMessages">
+                <template x-for="(message, index) in chatMessages" :key="index">
+                    <div :class="message.sender === 'user' ? 'text-right mb-2' : 'text-left mb-2'">
+                        <div :class="message.sender === 'user' ? 
+                            'inline-block bg-blue-500 text-white px-3 py-2 rounded-lg max-w-xs' : 
+                            'inline-block bg-white border px-3 py-2 rounded-lg max-w-xs'">
+                            <p class="text-sm" x-text="message.text"></p>
+                            <p class="text-xs opacity-75 mt-1" x-text="message.time"></p>
+                        </div>
+                    </div>
+                </template>
+                
+                <div x-show="chatMessages.length === 0" class="text-center py-8 text-gray-500">
+                    <p class="text-sm">👋 Hi! Ask me about your finances!</p>
+                </div>
+            </div>
+            
+            <!-- Input -->
+            <div class="p-3 border-t bg-white rounded-b-lg">
+                <div class="flex space-x-2">
+                    <input type="text" 
+                        x-model="chatInput" 
+                        @keydown.enter="sendChatMessage"
+                        placeholder="Type your question..."
+                        class="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500">
+                    <button @click="sendChatMessage" 
+                            :disabled="!chatInput.trim() || chatLoading"
+                            class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        <i x-show="!chatLoading" class="fas fa-paper-plane"></i>
+                        <i x-show="chatLoading" class="fas fa-spinner fa-spin"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- JavaScript for Dashboard Functionality -->
-    <script>
-        // Health Score Data Component
-        function healthScoreData() {
-            return {
-                healthScore: 75,
-                scores: {
-                    emergency: 20,
-                    savings: 18,
-                    goals: 22,
-                    investments: 15
-                },
-                healthRecommendations: [
-                    'Build emergency fund to 6 months of expenses',
-                    'Increase investment in equity funds',
-                    'Review and rebalance your portfolio quarterly',
-                    'Consider term insurance for better protection'
-                ],
-                
-                async init() {
-                    await this.fetchHealthScore();
-                },
-                
-                async fetchHealthScore() {
-                    try {
-                        const response = await fetch('/api/financial-health-score');
-                        if (response.ok) {
-                            const data = await response.json();
-                            this.healthScore = data.totalScore;
-                            this.scores = data.breakdown;
-                            this.healthRecommendations = data.recommendations;
-                        }
-                    } catch (error) {
-                        console.log('Health score fetch failed, using defaults');
+
+
+
+        <!-- JavaScript for Dashboard Functionality -->
+        <script>
+            // Add this right before your dashboardData() function
+            function healthScoreData() {
+                return {
+                    healthScore: 75,
+                    scores: { emergency: 20, savings: 18, goals: 22, investments: 15 },
+                    getHealthScoreText() {
+                        return this.healthScore >= 80 ? 'Excellent' : 
+                            this.healthScore >= 60 ? 'Good' : 
+                            this.healthScore >= 40 ? 'Fair' : 'Needs Improvement';
                     }
-                },
-                
-                getHealthScoreText() {
-                    if (this.healthScore >= 80) return 'Excellent Financial Health';
-                    else if (this.healthScore >= 60) return 'Good Financial Health';
-                    else if (this.healthScore >= 40) return 'Fair Financial Health';
-                    else return 'Needs Improvement';
                 }
             }
-        }
 
         function dashboardData() {
             return {
@@ -761,12 +737,22 @@
                 budgetChart: null,
                 investmentChart: null,
                 
+                // FIXED: Health Score Data (integrated)
+                healthScore: 75,
+                scores: {
+                    emergency: 20,
+                    savings: 18,
+                    goals: 22,
+                    investments: 15
+                },
+                healthRecommendations: [],
+                
                 // Computed Properties
                 get isValidIncome() {
                     return this.financialData.income > 0 && this.financialData.income <= 100000000;
                 },
                 
-                // Methods
+                // Validation Methods
                 validateIncome() {
                     this.errors.income = '';
                     if (!this.financialData.income) {
@@ -793,11 +779,15 @@
                     return descriptions[this.financialData.riskAppetite] || '';
                 },
                 
-                // Chatbot Methods
+                // FIXED: Chatbot Methods
                 toggleChatbot() {
                     this.chatbotVisible = !this.chatbotVisible;
                     if (this.chatbotVisible && this.chatMessages.length === 0) {
-                        this.addWelcomeMessage();
+                        this.chatMessages.push({
+                            sender: 'ai',
+                            text: 'Hello! How can I help you with your finances?',
+                            time: new Date().toLocaleTimeString()
+                        });
                     }
                 },
                 
@@ -821,7 +811,6 @@
                     
                     const userMessage = this.chatInput.trim();
                     
-                    // Add user message
                     this.chatMessages.push({
                         sender: 'user',
                         text: userMessage,
@@ -832,7 +821,6 @@
                     this.chatLoading = true;
                     
                     try {
-                        // Prepare context for AI
                         const context = {
                             income: this.financialData.income,
                             risk: this.financialData.riskAppetite,
@@ -868,11 +856,14 @@
                         this.chatLoading = false;
                         this.$nextTick(() => {
                             const chatContainer = document.getElementById('chatMessages');
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                            if (chatContainer) {
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            }
                         });
                     }
                 },
                 
+                // Financial Planning Methods
                 async generateFinancialPlan() {
                     this.loading = true;
                     
@@ -939,8 +930,12 @@
                         this.updateBudgetChart();
                         this.updateInvestmentChart();
                     });
+                    
+                    // FIXED: Update health score after dashboard update
+                    this.updateHealthScore();
                 },
                 
+                // Investment Methods
                 updateInvestmentDetails(investments) {
                     const savingsAmount = this.metrics.monthlySavings;
                     this.investmentDetails = [];
@@ -1010,6 +1005,7 @@
                     return monthlyAmount * (Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn * (1 + monthlyReturn);
                 },
                 
+                // Chart Methods
                 updateBudgetChart() {
                     const ctx = document.getElementById('budgetChart');
                     if (!ctx) return;
@@ -1075,7 +1071,7 @@
                     });
                 },
                 
-                // Goal Management
+                // Goal Management Methods
                 addGoal() {
                     if (!this.newGoal.name || !this.newGoal.amount || !this.newGoal.timeYears) {
                         alert('Please fill all goal information');
@@ -1098,10 +1094,14 @@
                     
                     this.goals.push(goal);
                     this.newGoal = { name: '', amount: '', timeYears: '' };
+                    
+                    // Update health score when goals change
+                    this.updateHealthScore();
                 },
                 
                 removeGoal(index) {
                     this.goals.splice(index, 1);
+                    this.updateHealthScore();
                 },
                 
                 calculateGoalSIP(amount, years) {
@@ -1167,6 +1167,148 @@
                     }
                 },
                 
+                // FIXED: Health Score Methods (integrated)
+                updateHealthScore() {
+                    const financialData = {
+                        income: this.financialData.income,
+                        riskAppetite: this.financialData.riskAppetite,
+                        monthlySavings: this.metrics.monthlySavings,
+                        emergencyFund: this.metrics.emergencyFund,
+                        planGenerated: this.planGenerated
+                    };
+                    
+                    const emergencyScore = this.calculateEmergencyScore(financialData);
+                    const savingsScore = this.calculateSavingsScore(financialData);
+                    const goalsScore = this.calculateGoalsScore(this.goals);
+                    const investmentsScore = this.calculateInvestmentScore(financialData);
+                    
+                    this.scores = {
+                        emergency: emergencyScore,
+                        savings: savingsScore,
+                        goals: goalsScore,
+                        investments: investmentsScore
+                    };
+                    
+                    this.healthScore = emergencyScore + savingsScore + goalsScore + investmentsScore;
+                    this.updateHealthRecommendations();
+                },
+                
+                calculateEmergencyScore(financialData) {
+                    const income = financialData.income || 0;
+                    if (income === 0) return 0;
+                    
+                    const targetEmergencyFund = income * 6;
+                    const currentEmergencyFund = financialData.emergencyFund || 0;
+                    const coverage = currentEmergencyFund / targetEmergencyFund;
+                    
+                    if (coverage >= 1.0) return 25;
+                    else if (coverage >= 0.75) return 20;
+                    else if (coverage >= 0.5) return 15;
+                    else if (coverage >= 0.25) return 10;
+                    else if (coverage > 0) return 5;
+                    else return 0;
+                },
+                
+                calculateSavingsScore(financialData) {
+                    const income = financialData.income || 0;
+                    const monthlySavings = financialData.monthlySavings || 0;
+                    
+                    if (income === 0) return 0;
+                    
+                    const savingsRate = (monthlySavings / income) * 100;
+                    
+                    if (savingsRate >= 30) return 25;
+                    else if (savingsRate >= 25) return 22;
+                    else if (savingsRate >= 20) return 20;
+                    else if (savingsRate >= 15) return 15;
+                    else if (savingsRate >= 10) return 10;
+                    else if (savingsRate >= 5) return 5;
+                    else return 0;
+                },
+                
+                calculateGoalsScore(goals) {
+                    const goalsCount = goals.length;
+                    
+                    if (goalsCount === 0) return 5; // Give 5 points for having the system set up
+                    
+                    const totalFeasibility = goals.reduce((sum, goal) => {
+                        return sum + (goal.feasibility_score || 50);
+                    }, 0);
+                    
+                    const avgFeasibility = totalFeasibility / goalsCount;
+                    let baseScore = Math.min(goalsCount * 5, 15);
+                    
+                    let feasibilityBonus = 0;
+                    if (avgFeasibility >= 80) feasibilityBonus = 10;
+                    else if (avgFeasibility >= 60) feasibilityBonus = 7;
+                    else if (avgFeasibility >= 40) feasibilityBonus = 5;
+                    else feasibilityBonus = 2;
+                    
+                    return Math.min(baseScore + feasibilityBonus, 25);
+                },
+                
+                calculateInvestmentScore(financialData) {
+                    const riskAppetite = financialData.riskAppetite || 'moderate';
+                    const income = financialData.income || 0;
+                    
+                    if (income === 0) return 0;
+                    
+                    let baseScore = 0;
+                    
+                    if (income < 50000) {
+                        if (riskAppetite === 'conservative') baseScore = 20;
+                        else if (riskAppetite === 'moderate') baseScore = 15;
+                        else baseScore = 10;
+                    } else if (income < 200000) {
+                        if (riskAppetite === 'moderate') baseScore = 20;
+                        else if (riskAppetite === 'conservative') baseScore = 15;
+                        else baseScore = 18;
+                    } else {
+                        if (riskAppetite === 'aggressive') baseScore = 20;
+                        else if (riskAppetite === 'moderate') baseScore = 18;
+                        else baseScore = 12;
+                    }
+                    
+                    if (financialData.planGenerated) baseScore += 5;
+                    
+                    return Math.min(baseScore, 25);
+                },
+                
+                updateHealthRecommendations() {
+                    this.healthRecommendations = [];
+                    
+                    if (this.scores.emergency < 20) {
+                        this.healthRecommendations.push('🚨 Build emergency fund to 6 months of expenses');
+                    }
+                    
+                    if (this.scores.savings < 15) {
+                        this.healthRecommendations.push('💰 Increase your monthly savings rate to 20%+');
+                    }
+                    
+                    if (this.scores.goals < 15) {
+                        this.healthRecommendations.push('🎯 Set specific financial goals with timelines');
+                    }
+                    
+                    if (this.scores.investments < 18) {
+                        this.healthRecommendations.push('📈 Review and optimize your investment strategy');
+                    }
+                    
+                    if (this.healthScore >= 80) {
+                        this.healthRecommendations.unshift('🎉 Excellent financial health! Keep it up!');
+                    } else if (this.healthScore >= 60) {
+                        this.healthRecommendations.unshift('👍 Good financial health with room for improvement');
+                    } else {
+                        this.healthRecommendations.unshift('⚠️ Your financial health needs attention');
+                    }
+                },
+                
+                getHealthScoreText() {
+                    if (this.healthScore >= 80) return 'Excellent Financial Health';
+                    else if (this.healthScore >= 60) return 'Good Financial Health';
+                    else if (this.healthScore >= 40) return 'Fair Financial Health';
+                    else return 'Needs Improvement';
+                },
+                
                 // Utility Functions
                 formatCurrency(amount) {
                     if (!amount) return '₹0';
@@ -1178,8 +1320,11 @@
                     return Math.round(amount).toLocaleString('en-IN');
                 },
                 
-                // Initialize dashboard
+                // Initialize Dashboard
                 init() {
+                    // Initial health score calculation
+                    this.updateHealthScore();
+                    
                     if (this.financialData.income > 0) {
                         this.generateFinancialPlan();
                     }
@@ -1187,5 +1332,7 @@
             }
         }
     </script>
+
+
 </body>
 </html>
