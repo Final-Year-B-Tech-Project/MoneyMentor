@@ -3,40 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoneyMentor - Financial Dashboard</title>
+    <title>MoneyMentor - Your Personal Financial Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
+            border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%;
+            width: 30px; height: 30px; animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .chart-container { position: relative; height: 300px; margin: 20px 0; }
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: translateY(-5px); }
+        
+        /* Fixed Chatbot Styles */
+        .chat-icon {
+            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%;
+            color: white; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            cursor: pointer; transition: all 0.3s ease; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
         }
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 20px 0;
+        .chat-icon:hover { transform: scale(1.1); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .chat-icon.hidden { display: none; }
+        
+        .chatbot-popup {
+            position: fixed; bottom: 90px; right: 20px; width: 380px; height: 500px;
+            background: white; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            z-index: 999; transition: all 0.3s ease; overflow: hidden;
         }
-        .metric-card {
-            transition: all 0.3s ease;
+        .chatbot-popup.hidden { 
+            opacity: 0; visibility: hidden; transform: translateY(20px) scale(0.95); 
         }
-        .metric-card:hover {
-            transform: translateY(-5px);
+        
+        .investment-detail-panel {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 20px 0;
+        }
+        .news-update-item {
+            border-left: 4px solid #3b82f6; padding-left: 15px; margin-bottom: 15px;
+            background: #f8fafc; padding: 12px; border-radius: 8px;
+        }
+        .safety-tip {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-bottom: 10px;
+        }
+        
+        /* Health Score Styles */
+        .health-score-ring {
+            transform: rotate(-90deg);
+        }
+        .health-score-progress {
+            transition: stroke-dasharray 1s ease-in-out;
         }
     </style>
 </head>
@@ -48,11 +70,20 @@
                 <div class="flex items-center space-x-4">
                     <i class="fas fa-chart-line text-2xl"></i>
                     <h1 class="text-2xl font-bold">MoneyMentor</h1>
-                    <span class="text-sm opacity-75">AI-Powered Financial Planning</span>
+                    <span class="text-sm opacity-75">Your Personal Financial Guide</span>
                 </div>
                 <div class="flex items-center space-x-6">
+                    <!-- Financial Health Score Badge -->
+                    <div class="flex items-center space-x-2 bg-white bg-opacity-20 rounded-full px-4 py-2" x-data="healthScoreData()">
+                        <i class="fas fa-heartbeat text-xl"></i>
+                        <div class="text-center">
+                            <p class="text-xs opacity-75">Health Score</p>
+                            <p class="font-bold text-sm" x-text="healthScore + '/100'">--/100</p>
+                        </div>
+                    </div>
+                    
                     <div class="text-right">
-                        <p class="text-sm opacity-75">Welcome back,</p>
+                        <p class="text-sm opacity-75">Hello,</p>
                         <p class="font-semibold">{{ user.username }}</p>
                     </div>
                     <div class="relative" x-data="{ showMenu: false }">
@@ -67,9 +98,15 @@
                              x-transition:leave="transition ease-in duration-75"
                              x-transition:leave-start="transform opacity-100 scale-100"
                              x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <i class="fas fa-cog mr-2"></i>Settings
+                             class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-user mr-2"></i>Profile & Settings
+                            </a>
+                            <a href="/expenses" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-receipt mr-2"></i>Expense Tracker
+                            </a>
+                            <a href="#" @click="showHealthDetails = true" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-heartbeat mr-2"></i>Financial Health
                             </a>
                             <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-download mr-2"></i>Export Data
@@ -92,13 +129,13 @@
         <div class="bg-white rounded-lg card-shadow p-6 mb-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                 <i class="fas fa-calculator mr-3 text-blue-600"></i>
-                Financial Information
+                Your Financial Information
             </h2>
             
             <div class="grid md:grid-cols-3 gap-6">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">
-                        <i class="fas fa-rupee-sign mr-2"></i>Monthly Income
+                        <i class="fas fa-rupee-sign mr-2"></i>Monthly Income (₹)
                     </label>
                     <input type="number" 
                            x-model="financialData.income" 
@@ -106,18 +143,21 @@
                            class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none transition"
                            placeholder="e.g., 75000">
                     <p x-show="errors.income" class="text-red-500 text-sm mt-1" x-text="errors.income"></p>
+                    <p class="text-xs text-gray-500 mt-1">Enter your total monthly income before tax</p>
                 </div>
                 
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">
-                        <i class="fas fa-chart-area mr-2"></i>Risk Appetite
+                        <i class="fas fa-chart-area mr-2"></i>Investment Style
                     </label>
                     <select x-model="financialData.riskAppetite" 
+                            @change="onRiskChange"
                             class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none transition">
-                        <option value="conservative">Conservative (Low Risk)</option>
-                        <option value="moderate" selected>Moderate (Balanced)</option>
-                        <option value="aggressive">Aggressive (High Risk)</option>
+                        <option value="conservative">Safe & Secure (Low Risk)</option>
+                        <option value="moderate" selected>Balanced Growth (Medium Risk)</option>
+                        <option value="aggressive">Fast Growth (High Risk)</option>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1" x-text="getRiskDescription()"></p>
                 </div>
                 
                 <div class="flex items-end">
@@ -127,7 +167,7 @@
                             class="w-full text-white font-bold py-3 px-6 rounded-lg transition flex items-center justify-center">
                         <span x-show="!loading" class="flex items-center">
                             <i class="fas fa-magic mr-2"></i>
-                            Generate Plan
+                            Create My Plan
                         </span>
                         <div x-show="loading" class="loading-spinner"></div>
                     </button>
@@ -140,20 +180,12 @@
             <div class="bg-white rounded-lg card-shadow p-6 metric-card">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Monthly Budget</p>
-                        <p class="text-2xl font-bold text-blue-600" x-text="formatCurrency(metrics.monthlyBudget)">₹0</p>
+                        <p class="text-gray-600 text-sm font-medium">Essential Expenses</p>
+                        <p class="text-2xl font-bold text-blue-600" x-text="formatCurrency(metrics.essentialExpenses)">₹0</p>
+                        <p class="text-xs text-gray-500" x-text="budgetPercentages.needs + '% of income'"></p>
                     </div>
                     <div class="bg-blue-100 p-3 rounded-full">
-                        <i class="fas fa-wallet text-blue-600 text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="flex items-center text-sm">
-                        <span class="text-green-500 font-medium">50% Needs</span>
-                        <span class="mx-2">•</span>
-                        <span class="text-orange-500 font-medium">30% Wants</span>
-                        <span class="mx-2">•</span>
-                        <span class="text-purple-500 font-medium">20% Savings</span>
+                        <i class="fas fa-home text-blue-600 text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -161,16 +193,12 @@
             <div class="bg-white rounded-lg card-shadow p-6 metric-card">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Investment SIP</p>
-                        <p class="text-2xl font-bold text-green-600" x-text="formatCurrency(metrics.investmentSip)">₹0</p>
+                        <p class="text-gray-600 text-sm font-medium">Fun & Lifestyle</p>
+                        <p class="text-2xl font-bold text-green-600" x-text="formatCurrency(metrics.lifestyleExpenses)">₹0</p>
+                        <p class="text-xs text-gray-500" x-text="budgetPercentages.wants + '% of income'"></p>
                     </div>
                     <div class="bg-green-100 p-3 rounded-full">
-                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="flex items-center text-sm text-gray-600">
-                        <span x-text="metrics.expectedReturn">12</span>% expected annual return
+                        <i class="fas fa-coffee text-green-600 text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -178,16 +206,12 @@
             <div class="bg-white rounded-lg card-shadow p-6 metric-card">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Tax Savings</p>
-                        <p class="text-2xl font-bold text-purple-600" x-text="formatCurrency(metrics.taxSavings)">₹0</p>
+                        <p class="text-gray-600 text-sm font-medium">Monthly Savings</p>
+                        <p class="text-2xl font-bold text-purple-600" x-text="formatCurrency(metrics.monthlySavings)">₹0</p>
+                        <p class="text-xs text-gray-500" x-text="budgetPercentages.savings + '% of income'"></p>
                     </div>
                     <div class="bg-purple-100 p-3 rounded-full">
-                        <i class="fas fa-receipt text-purple-600 text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="flex items-center text-sm text-gray-600">
-                        Via 80C, 80D deductions
+                        <i class="fas fa-piggy-bank text-purple-600 text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -197,38 +221,107 @@
                     <div>
                         <p class="text-gray-600 text-sm font-medium">Emergency Fund</p>
                         <p class="text-2xl font-bold text-orange-600" x-text="formatCurrency(metrics.emergencyFund)">₹0</p>
+                        <p class="text-xs text-gray-500" x-text="emergencyDetails.months + ' months coverage'"></p>
                     </div>
                     <div class="bg-orange-100 p-3 rounded-full">
                         <i class="fas fa-shield-alt text-orange-600 text-xl"></i>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <div class="flex items-center text-sm text-gray-600">
-                        6 months of expenses
+            </div>
+        </div>
+
+        <!-- Financial Health Score Section -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8" x-show="planGenerated" x-data="healthScoreData()">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-heartbeat mr-3 text-red-600"></i>
+                Your Financial Health Score
+            </h3>
+            
+            <div class="grid md:grid-cols-4 gap-6">
+                <!-- Main Health Score -->
+                <div class="text-center">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <svg class="w-32 h-32 health-score-ring">
+                            <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                            <circle cx="64" cy="64" r="56" stroke="#10b981" stroke-width="8" fill="none"
+                                    class="health-score-progress"
+                                    :stroke-dasharray="`${healthScore * 3.51} 351`" 
+                                    stroke-linecap="round"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <span class="text-2xl font-bold text-green-600" x-text="healthScore">75</span>
+                                <p class="text-xs text-gray-500">out of 100</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm font-medium text-gray-700" x-text="getHealthScoreText()">Good Health</p>
+                </div>
+                
+                <!-- Score Breakdown -->
+                <div class="md:col-span-3">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-shield-alt text-blue-600 mr-3"></i>
+                                <span class="font-medium">Emergency Fund</span>
+                            </div>
+                            <span class="font-bold text-blue-600" x-text="scores.emergency + '/25'">20/25</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-piggy-bank text-green-600 mr-3"></i>
+                                <span class="font-medium">Savings Rate</span>
+                            </div>
+                            <span class="font-bold text-green-600" x-text="scores.savings + '/25'">18/25</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-bullseye text-purple-600 mr-3"></i>
+                                <span class="font-medium">Goal Planning</span>
+                            </div>
+                            <span class="font-bold text-purple-600" x-text="scores.goals + '/25'">22/25</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-chart-line text-orange-600 mr-3"></i>
+                                <span class="font-medium">Investment Mix</span>
+                            </div>
+                            <span class="font-bold text-orange-600" x-text="scores.investments + '/25'">15/25</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommendations -->
+                    <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                        <h4 class="font-semibold text-yellow-800 mb-2">💡 Recommendations to Improve</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <template x-for="recommendation in healthRecommendations" :key="recommendation">
+                                <li x-text="'• ' + recommendation"></li>
+                            </template>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts and Analysis Section -->
+        <!-- Charts Section -->
         <div class="grid lg:grid-cols-2 gap-8 mb-8" x-show="planGenerated">
-            <!-- Budget Allocation Chart -->
             <div class="bg-white rounded-lg card-shadow p-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-chart-pie mr-3 text-blue-600"></i>
-                    Budget Allocation
+                    Your Monthly Budget Plan
                 </h3>
                 <div class="chart-container">
                     <canvas id="budgetChart"></canvas>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-                    <div class="bg-green-50 p-3 rounded-lg">
-                        <p class="text-green-600 font-semibold" x-text="formatCurrency(budgetBreakdown.needs)">₹0</p>
-                        <p class="text-sm text-gray-600">Needs</p>
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-blue-600 font-semibold" x-text="formatCurrency(budgetBreakdown.needs)">₹0</p>
+                        <p class="text-sm text-gray-600">Essential</p>
                     </div>
-                    <div class="bg-orange-50 p-3 rounded-lg">
-                        <p class="text-orange-600 font-semibold" x-text="formatCurrency(budgetBreakdown.wants)">₹0</p>
-                        <p class="text-sm text-gray-600">Wants</p>
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <p class="text-green-600 font-semibold" x-text="formatCurrency(budgetBreakdown.wants)">₹0</p>
+                        <p class="text-sm text-gray-600">Lifestyle</p>
                     </div>
                     <div class="bg-purple-50 p-3 rounded-lg">
                         <p class="text-purple-600 font-semibold" x-text="formatCurrency(budgetBreakdown.savings)">₹0</p>
@@ -237,11 +330,10 @@
                 </div>
             </div>
 
-            <!-- Investment Portfolio Chart -->
             <div class="bg-white rounded-lg card-shadow p-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-chart-bar mr-3 text-green-600"></i>
-                    Investment Portfolio
+                    Investment Strategy (<span x-text="financialData.riskAppetite" class="capitalize"></span>)
                 </h3>
                 <div class="chart-container">
                     <canvas id="investmentChart"></canvas>
@@ -249,133 +341,323 @@
                 <div class="mt-4 space-y-2">
                     <template x-for="(allocation, category) in portfolioAllocation" :key="category">
                         <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
-                            <span class="font-medium capitalize" x-text="category"></span>
-                            <span class="text-sm" x-text="allocation + '%'"></span>
+                            <span class="font-medium capitalize" x-text="getInvestmentName(category)"></span>
+                            <span class="text-sm font-bold" x-text="allocation + '%'"></span>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
 
-        <!-- Goal Planning Section -->
+        <!-- Investment Details Panel -->
+        <div class="investment-detail-panel" x-show="planGenerated">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-coins mr-3 text-yellow-600"></i>
+                Where to Invest Your ₹<span x-text="formatNumber(metrics.monthlySavings)"></span> Monthly
+            </h3>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="investment in investmentDetails" :key="investment.name">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-bold text-gray-800" x-text="investment.name"></h4>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full" x-text="investment.risk"></span>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Monthly Investment:</span>
+                                <span class="font-semibold" x-text="formatCurrency(investment.monthly)"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Expected Return:</span>
+                                <span class="font-semibold text-green-600" x-text="investment.return + '%'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">After 1 Year:</span>
+                                <span class="font-semibold text-blue-600" x-text="formatCurrency(investment.oneYear)"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">After 5 Years:</span>
+                                <span class="font-semibold text-purple-600" x-text="formatCurrency(investment.fiveYear)"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                            <span x-text="investment.description"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <div class="mt-6 bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+                <h4 class="font-bold text-green-800 mb-2">💡 Your Investment Summary</h4>
+                <div class="grid md:grid-cols-3 gap-4 text-sm">
+                    <div class="text-center">
+                        <p class="text-gray-600">Total Monthly Investment</p>
+                        <p class="font-bold text-lg text-green-600" x-text="formatCurrency(totalMonthlyInvestment)"></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-600">Expected Value After 5 Years</p>
+                        <p class="font-bold text-lg text-purple-600" x-text="formatCurrency(totalFiveYearValue)"></p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-600">Total Profit Potential</p>
+                        <p class="font-bold text-lg text-blue-600" x-text="formatCurrency(totalProfit)"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Improved Goal Planning Section -->
         <div class="bg-white rounded-lg card-shadow p-6 mb-8" x-show="planGenerated">
             <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
                 <i class="fas fa-bullseye mr-3 text-indigo-600"></i>
-                Financial Goals
+                Plan Your Financial Goals
             </h3>
             
             <!-- Add Goal Form -->
-            <div class="bg-gray-50 p-4 rounded-lg mb-6">
-                <h4 class="font-semibold mb-4">Add New Goal</h4>
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg mb-6 border border-indigo-200">
+                <h4 class="font-semibold mb-4 text-indigo-800">✨ Add a New Goal</h4>
                 <div class="grid md:grid-cols-4 gap-4">
                     <input type="text" 
                            x-model="newGoal.name" 
-                           placeholder="Goal Name (e.g., House, Car)"
-                           class="border rounded-lg px-3 py-2">
+                           placeholder="Goal Name (e.g., Buy a Car)"
+                           class="border-2 border-indigo-200 rounded-lg px-3 py-2 focus:border-indigo-500">
                     <input type="number" 
                            x-model="newGoal.amount" 
-                           placeholder="Target Amount"
-                           class="border rounded-lg px-3 py-2">
+                           placeholder="Target Amount (₹)"
+                           class="border-2 border-indigo-200 rounded-lg px-3 py-2 focus:border-indigo-500">
                     <input type="number" 
                            x-model="newGoal.timeYears" 
-                           placeholder="Years to achieve"
-                           class="border rounded-lg px-3 py-2">
+                           placeholder="Time (Years)"
+                           class="border-2 border-indigo-200 rounded-lg px-3 py-2 focus:border-indigo-500">
                     <button @click="addGoal" 
-                            class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700">
+                            class="bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 flex items-center justify-center">
                         <i class="fas fa-plus mr-2"></i>Add Goal
                     </button>
                 </div>
+                <p class="text-xs text-indigo-600 mt-2">💡 Tip: Be specific with your goals. Instead of "vacation", try "Europe trip"</p>
             </div>
 
             <!-- Goals List -->
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <template x-for="(goal, index) in goals" :key="index">
-                    <div class="border rounded-lg p-4 hover:shadow-md transition">
-                        <div class="flex justify-between items-start">
+                    <div class="border rounded-lg p-6 hover:shadow-md transition" :class="getGoalCardClass(goal)">
+                        <div class="flex justify-between items-start mb-4">
                             <div class="flex-1">
-                                <h5 class="font-semibold text-lg" x-text="goal.name"></h5>
-                                <div class="grid md:grid-cols-3 gap-4 mt-3 text-sm">
-                                    <div>
-                                        <p class="text-gray-600">Target Amount</p>
-                                        <p class="font-semibold" x-text="formatCurrency(goal.target_amount)"></p>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h5 class="font-bold text-lg" x-text="goal.name"></h5>
+                                    <span :class="getGoalStatusBadge(goal)" x-text="getGoalStatus(goal)"></span>
+                                </div>
+                                
+                                <div class="grid md:grid-cols-4 gap-4 mt-4 text-sm">
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <p class="text-gray-600 text-xs">Target Amount</p>
+                                        <p class="font-bold text-lg" x-text="formatCurrency(goal.target_amount)"></p>
                                     </div>
-                                    <div>
-                                        <p class="text-gray-600">Time Horizon</p>
-                                        <p class="font-semibold" x-text="goal.time_horizon_years + ' years'"></p>
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <p class="text-gray-600 text-xs">Time Needed</p>
+                                        <p class="font-bold text-lg" x-text="goal.time_horizon_years + ' years'"></p>
                                     </div>
-                                    <div>
-                                        <p class="text-gray-600">Monthly SIP Required</p>
-                                        <p class="font-semibold text-blue-600" x-text="formatCurrency(goal.monthly_sip_required)"></p>
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <p class="text-gray-600 text-xs">Monthly SIP Required</p>
+                                        <p class="font-bold text-lg text-blue-600" x-text="formatCurrency(goal.monthly_sip_required)"></p>
+                                    </div>
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <p class="text-gray-600 text-xs">Feasibility</p>
+                                        <p class="font-bold text-lg" :class="getFeasibilityColor(goal)" x-text="getFeasibilityText(goal)"></p>
                                     </div>
                                 </div>
                                 
-                                <!-- Progress Bar -->
-                                <div class="mt-4">
-                                    <div class="flex justify-between text-sm mb-1">
-                                        <span>Progress</span>
-                                        <span x-text="Math.round((goal.current_corpus / goal.target_amount) * 100) + '%'"></span>
-                                    </div>
-                                    <div class="bg-gray-200 rounded-full h-2">
-                                        <div class="bg-blue-600 h-2 rounded-full" 
-                                             :style="'width: ' + Math.min(100, (goal.current_corpus / goal.target_amount) * 100) + '%'"></div>
-                                    </div>
+                                <!-- Goal Advice -->
+                                <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                                    <p class="text-sm text-blue-800" x-html="getGoalAdvice(goal)"></p>
                                 </div>
                             </div>
                             
-                            <div class="ml-4">
-                                <button @click="removeGoal(index)" 
-                                        class="text-red-600 hover:text-red-800">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                            <button @click="removeGoal(index)" 
+                                    class="ml-4 text-red-600 hover:text-red-800 p-2">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </template>
                 
-                <div x-show="goals.length === 0" class="text-center py-8 text-gray-500">
-                    <i class="fas fa-target text-4xl mb-4"></i>
-                    <p>No goals added yet. Add your first financial goal above!</p>
+                <div x-show="goals.length === 0" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-target text-6xl mb-4 text-gray-300"></i>
+                    <h4 class="text-xl font-semibold mb-2">No Goals Set Yet</h4>
+                    <p>Start by adding your first financial goal above!</p>
                 </div>
             </div>
         </div>
 
-        <!-- AI Chat Assistant -->
-        <div class="bg-white rounded-lg card-shadow p-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-robot mr-3 text-indigo-600"></i>
-                Ask MoneyMentor AI
+        <!-- Financial News & Updates Section -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-newspaper mr-3 text-red-600"></i>
+                Latest Financial Updates
             </h3>
             
-            <div class="bg-gray-50 rounded-lg p-4 h-64 overflow-y-auto mb-4" id="chatMessages">
-                <div class="space-y-3">
-                    <template x-for="(message, index) in chatMessages" :key="index">
-                        <div :class="message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'">
-                            <div :class="message.sender === 'user' ? 
-                                'bg-blue-600 text-white rounded-lg px-4 py-2 max-w-xs' : 
-                                'bg-white text-gray-800 rounded-lg px-4 py-2 max-w-md border'">
-                                <p class="text-sm" x-html="message.text"></p>
-                                <p class="text-xs opacity-75 mt-1" x-text="message.time"></p>
-                            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Financial News -->
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-3 flex items-center">
+                        <i class="fas fa-chart-line mr-2 text-green-600"></i>Market News
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">RBI Keeps Interest Rates Unchanged</h5>
+                            <p class="text-xs text-gray-600 mt-1">Current repo rate remains at 6.50%. Good time for fixed deposits.</p>
+                            <span class="text-xs text-blue-600">Today</span>
                         </div>
-                    </template>
-                    
-                    <div x-show="chatMessages.length === 0" class="text-center py-8 text-gray-500">
-                        <i class="fas fa-comments text-3xl mb-2"></i>
-                        <p>Start a conversation with your AI financial advisor!</p>
-                        <p class="text-sm mt-2">Try asking: "How can I save more tax?" or "Best funds for 5-year goal?"</p>
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">Mutual Fund SIPs Hit Record High</h5>
+                            <p class="text-xs text-gray-600 mt-1">Indians are investing more in mutual funds through SIPs.</p>
+                            <span class="text-xs text-blue-600">2 days ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IPOs -->
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-3 flex items-center">
+                        <i class="fas fa-building mr-2 text-purple-600"></i>Upcoming IPOs
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">ABC Technologies IPO</h5>
+                            <p class="text-xs text-gray-600 mt-1">Price band: ₹350-380. Opens next week.</p>
+                            <span class="text-xs text-purple-600">Opening Soon</span>
+                        </div>
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">XYZ Bank Rights Issue</h5>
+                            <p class="text-xs text-gray-600 mt-1">Existing shareholders can buy at ₹45 per share.</p>
+                            <span class="text-xs text-purple-600">This Month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Government Schemes -->
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-3 flex items-center">
+                        <i class="fas fa-university mr-2 text-orange-600"></i>Govt Schemes
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">NSC Interest Rate Increased</h5>
+                            <p class="text-xs text-gray-600 mt-1">National Savings Certificate now offers 6.8% annually.</p>
+                            <span class="text-xs text-orange-600">This Quarter</span>
+                        </div>
+                        <div class="news-update-item">
+                            <h5 class="font-medium text-sm">PPF Rate Unchanged</h5>
+                            <p class="text-xs text-gray-600 mt-1">PPF continues to offer 7.1% for this quarter.</p>
+                            <span class="text-xs text-orange-600">Quarterly Update</span>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Safety & Fraud Awareness Section -->
+        <div class="bg-white rounded-lg card-shadow p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-shield-alt mr-3 text-red-600"></i>
+                Stay Safe: Financial Security Tips
+            </h3>
             
-            <div class="flex space-x-3">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Safety Tips -->
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>Fraud Alert Tips
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="safety-tip">
+                            <h5 class="font-medium text-sm">🚫 Never Share OTP or PIN</h5>
+                            <p class="text-xs text-gray-700 mt-1">Banks will never ask for OTP or PIN over phone or email.</p>
+                        </div>
+                        <div class="safety-tip">
+                            <h5 class="font-medium text-sm">📱 Verify Before UPI Payments</h5>
+                            <p class="text-xs text-gray-700 mt-1">Always double-check the receiver's name before sending money.</p>
+                        </div>
+                        <div class="safety-tip">
+                            <h5 class="font-medium text-sm">💳 Monitor Your Statements</h5>
+                            <p class="text-xs text-gray-700 mt-1">Check bank and credit card statements monthly for unknown transactions.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tax & Legal Updates -->
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-gavel mr-2 text-blue-600"></i>Tax & Legal Updates
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                            <h5 class="font-medium text-sm">Income Tax Slabs 2024-25</h5>
+                            <p class="text-xs text-blue-700 mt-1">New regime: 0% up to ₹3L, 5% from ₹3-6L, 10% from ₹6-9L...</p>
+                        </div>
+                        <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                            <h5 class="font-medium text-sm">80C Limit Remains ₹1.5 Lakh</h5>
+                            <p class="text-xs text-green-700 mt-1">Tax saving investments limit unchanged for FY 2024-25.</p>
+                        </div>
+                        <div class="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
+                            <h5 class="font-medium text-sm">LTCG on Mutual Funds</h5>
+                            <p class="text-xs text-purple-700 mt-1">Long term capital gains above ₹1 lakh are taxed at 10%.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Chatbot Icon (Always Visible) -->
+    <button class="chat-icon" @click="toggleChatbot" :class="{ 'hidden': chatbotVisible }">
+        <i class="fas fa-comments text-2xl"></i>
+    </button>
+
+    <!-- Chatbot Popup (Hidden by Default) -->
+    <div class="chatbot-popup" :class="{ 'hidden': !chatbotVisible }" x-show="chatbotVisible" x-transition>
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-robot mr-2"></i>
+                <span class="font-semibold">MoneyMentor AI</span>
+            </div>
+            <button @click="toggleChatbot" class="text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-4 h-80 overflow-y-auto bg-gray-50" id="chatMessages">
+            <template x-for="(message, index) in chatMessages" :key="index">
+                <div :class="message.sender === 'user' ? 'flex justify-end mb-3' : 'flex justify-start mb-3'">
+                    <div :class="message.sender === 'user' ? 
+                        'bg-blue-600 text-white rounded-lg px-4 py-2 max-w-xs' : 
+                        'bg-white text-gray-800 rounded-lg px-4 py-2 max-w-xs border'">
+                        <p class="text-sm" x-html="message.text"></p>
+                        <p class="text-xs opacity-75 mt-1" x-text="message.time"></p>
+                    </div>
+                </div>
+            </template>
+            
+            <div x-show="chatMessages.length === 0" class="text-center py-8 text-gray-500">
+                <i class="fas fa-robot text-3xl mb-2"></i>
+                <p class="text-sm">Hi! I'm your financial assistant.</p>
+                <p class="text-xs mt-1">Ask me about your budget, investments, or goals!</p>
+            </div>
+        </div>
+        
+        <div class="p-4 bg-white rounded-b-lg border-t">
+            <div class="flex space-x-2">
                 <input type="text" 
                        x-model="chatInput" 
                        @keydown.enter="sendChatMessage"
-                       placeholder="Ask about investments, tax savings, budgeting..."
-                       class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-indigo-500 focus:outline-none">
+                       placeholder="Ask about your finances..."
+                       class="flex-1 border rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
                 <button @click="sendChatMessage" 
                         :disabled="!chatInput.trim() || chatLoading"
-                        class="bg-indigo-600 text-white rounded-lg px-6 py-2 hover:bg-indigo-700 disabled:bg-gray-400">
+                        class="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 disabled:bg-gray-400">
                     <i x-show="!chatLoading" class="fas fa-paper-plane"></i>
                     <i x-show="chatLoading" class="fas fa-spinner fa-spin"></i>
                 </button>
@@ -385,6 +667,50 @@
 
     <!-- JavaScript for Dashboard Functionality -->
     <script>
+        // Health Score Data Component
+        function healthScoreData() {
+            return {
+                healthScore: 75,
+                scores: {
+                    emergency: 20,
+                    savings: 18,
+                    goals: 22,
+                    investments: 15
+                },
+                healthRecommendations: [
+                    'Build emergency fund to 6 months of expenses',
+                    'Increase investment in equity funds',
+                    'Review and rebalance your portfolio quarterly',
+                    'Consider term insurance for better protection'
+                ],
+                
+                async init() {
+                    await this.fetchHealthScore();
+                },
+                
+                async fetchHealthScore() {
+                    try {
+                        const response = await fetch('/api/financial-health-score');
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.healthScore = data.totalScore;
+                            this.scores = data.breakdown;
+                            this.healthRecommendations = data.recommendations;
+                        }
+                    } catch (error) {
+                        console.log('Health score fetch failed, using defaults');
+                    }
+                },
+                
+                getHealthScoreText() {
+                    if (this.healthScore >= 80) return 'Excellent Financial Health';
+                    else if (this.healthScore >= 60) return 'Good Financial Health';
+                    else if (this.healthScore >= 40) return 'Fair Financial Health';
+                    else return 'Needs Improvement';
+                }
+            }
+        }
+
         function dashboardData() {
             return {
                 // Financial Data
@@ -397,34 +723,35 @@
                 loading: false,
                 planGenerated: false,
                 chatLoading: false,
+                chatbotVisible: false,
+                showHealthDetails: false,
                 
                 // Validation
                 errors: {},
                 
                 // Metrics
                 metrics: {
-                    monthlyBudget: 0,
-                    investmentSip: 0,
-                    taxSavings: 0,
-                    emergencyFund: 0,
-                    expectedReturn: 12
+                    essentialExpenses: 0,
+                    lifestyleExpenses: 0,
+                    monthlySavings: 0,
+                    emergencyFund: 0
                 },
                 
-                // Budget & Investment Data
-                budgetBreakdown: {
-                    needs: 0,
-                    wants: 0,
-                    savings: 0
-                },
+                // Budget Data
+                budgetBreakdown: { needs: 0, wants: 0, savings: 0 },
+                budgetPercentages: { needs: 0, wants: 0, savings: 0 },
                 portfolioAllocation: {},
+                emergencyDetails: { months: 6 },
+                
+                // Investment Details
+                investmentDetails: [],
+                totalMonthlyInvestment: 0,
+                totalFiveYearValue: 0,
+                totalProfit: 0,
                 
                 // Goals
                 goals: [],
-                newGoal: {
-                    name: '',
-                    amount: '',
-                    timeYears: ''
-                },
+                newGoal: { name: '', amount: '', timeYears: '' },
                 
                 // Chat
                 chatMessages: [],
@@ -436,194 +763,57 @@
                 
                 // Computed Properties
                 get isValidIncome() {
-                    return this.financialData.income > 0 && this.financialData.income <= 10000000;
+                    return this.financialData.income > 0 && this.financialData.income <= 100000000;
                 },
                 
                 // Methods
                 validateIncome() {
                     this.errors.income = '';
-                    
                     if (!this.financialData.income) {
-                        this.errors.income = 'Income is required';
-                    } else if (this.financialData.income < 1000) {
-                        this.errors.income = 'Minimum income should be ₹1,000';
-                    } else if (this.financialData.income > 10000000) {
-                        this.errors.income = 'Maximum income cannot exceed ₹1 crore';
+                        this.errors.income = 'Please enter your monthly income';
+                    } else if (this.financialData.income < 5000) {
+                        this.errors.income = 'Minimum income should be ₹5,000';
+                    } else if (this.financialData.income > 100000000) {
+                        this.errors.income = 'Please enter a realistic income amount';
                     }
                 },
                 
-                async generateFinancialPlan() {
-                    this.loading = true;
-                    
-                    try {
-                        const response = await fetch('/api/calculate-plan', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                income: this.financialData.income,
-                                risk: this.financialData.riskAppetite,
-                                goals: this.goals
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error('Failed to generate plan');
-                        }
-                        
-                        const data = await response.json();
-                        this.updateDashboard(data);
-                        this.planGenerated = true;
-                        
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error generating financial plan. Please try again.');
-                    } finally {
-                        this.loading = false;
+                onRiskChange() {
+                    if (this.planGenerated) {
+                        this.generateFinancialPlan();
                     }
                 },
                 
-                updateDashboard(data) {
-                    // Update metrics
-                    this.metrics.monthlyBudget = this.financialData.income;
-                    this.metrics.investmentSip = data.investments?.monthly_investment || 0;
-                    this.metrics.taxSavings = (data.tax?.deductions?.['80C']?.tax_saved || 0) + 
-                                           (data.tax?.deductions?.['80D']?.tax_saved || 0);
-                    this.metrics.emergencyFund = this.financialData.income * 6;
-                    this.metrics.expectedReturn = data.investments?.expected_annual_return || 12;
-                    
-                    // Update budget breakdown
-                    this.budgetBreakdown = {
-                        needs: data.budget?.needs?.amount || 0,
-                        wants: data.budget?.wants?.amount || 0,
-                        savings: data.budget?.savings?.amount || 0
+                getRiskDescription() {
+                    const descriptions = {
+                        'conservative': 'Safe investments like FD, PPF with steady returns',
+                        'moderate': 'Mix of safe and growth investments for balanced returns',
+                        'aggressive': 'Growth-focused investments with higher potential returns'
                     };
+                    return descriptions[this.financialData.riskAppetite] || '';
+                },
+                
+                // Chatbot Methods
+                toggleChatbot() {
+                    this.chatbotVisible = !this.chatbotVisible;
+                    if (this.chatbotVisible && this.chatMessages.length === 0) {
+                        this.addWelcomeMessage();
+                    }
+                },
+                
+                addWelcomeMessage() {
+                    const welcomeMessage = `Hello! I can help you with your finances. `;
+                    let contextMessage = '';
                     
-                    // Update portfolio allocation
-                    if (data.investments?.allocation) {
-                        this.portfolioAllocation = {};
-                        Object.keys(data.investments.allocation).forEach(key => {
-                            this.portfolioAllocation[key] = data.investments.allocation[key].percentage;
-                        });
+                    if (this.planGenerated) {
+                        contextMessage = `I see you earn ₹${this.formatNumber(this.financialData.income)} monthly with ${this.financialData.riskAppetite} risk appetite. Your budget is ${this.budgetPercentages.needs}% essential expenses, ${this.budgetPercentages.wants}% lifestyle, and ${this.budgetPercentages.savings}% savings. `;
                     }
                     
-                    // Update charts
-                    this.$nextTick(() => {
-                        this.updateBudgetChart();
-                        this.updateInvestmentChart();
+                    this.chatMessages.push({
+                        sender: 'ai',
+                        text: welcomeMessage + contextMessage + 'What would you like to know?',
+                        time: new Date().toLocaleTimeString()
                     });
-                },
-                
-                updateBudgetChart() {
-                    const ctx = document.getElementById('budgetChart');
-                    if (!ctx) return;
-                    
-                    if (this.budgetChart) {
-                        this.budgetChart.destroy();
-                    }
-                    
-                    this.budgetChart = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Needs (50%)', 'Wants (30%)', 'Savings (20%)'],
-                            datasets: [{
-                                data: [
-                                    this.budgetBreakdown.needs,
-                                    this.budgetBreakdown.wants,
-                                    this.budgetBreakdown.savings
-                                ],
-                                backgroundColor: ['#10b981', '#f97316', '#8b5cf6'],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20,
-                                        font: { size: 12 }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                },
-                
-                updateInvestmentChart() {
-                    const ctx = document.getElementById('investmentChart');
-                    if (!ctx) return;
-                    
-                    if (this.investmentChart) {
-                        this.investmentChart.destroy();
-                    }
-                    
-                    const categories = Object.keys(this.portfolioAllocation);
-                    const values = Object.values(this.portfolioAllocation);
-                    
-                    this.investmentChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: categories.map(cat => cat.charAt(0).toUpperCase() + cat.slice(1)),
-                            datasets: [{
-                                data: values,
-                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#6b7280'],
-                                borderRadius: 6,
-                                borderSkipped: false,
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        callback: function(value) {
-                                            return value + '%';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                },
-                
-                addGoal() {
-                    if (!this.newGoal.name || !this.newGoal.amount || !this.newGoal.timeYears) {
-                        alert('Please fill all goal fields');
-                        return;
-                    }
-                    
-                    const goal = {
-                        name: this.newGoal.name,
-                        target_amount: parseFloat(this.newGoal.amount),
-                        time_horizon_years: parseFloat(this.newGoal.timeYears),
-                        current_corpus: 0,
-                        monthly_sip_required: this.calculateSIP(
-                            parseFloat(this.newGoal.amount), 
-                            parseFloat(this.newGoal.timeYears)
-                        )
-                    };
-                    
-                    this.goals.push(goal);
-                    this.newGoal = { name: '', amount: '', timeYears: '' };
-                },
-                
-                removeGoal(index) {
-                    this.goals.splice(index, 1);
-                },
-                
-                calculateSIP(amount, years) {
-                    const monthlyReturn = 0.12 / 12; // 12% annual return
-                    const months = years * 12;
-                    return Math.round(amount * monthlyReturn / (Math.pow(1 + monthlyReturn, months) - 1));
                 },
                 
                 async sendChatMessage() {
@@ -642,28 +832,36 @@
                     this.chatLoading = true;
                     
                     try {
+                        // Prepare context for AI
+                        const context = {
+                            income: this.financialData.income,
+                            risk: this.financialData.riskAppetite,
+                            budget: this.budgetBreakdown,
+                            goals: this.goals.length,
+                            planGenerated: this.planGenerated
+                        };
+                        
                         const response = await fetch('/api/chat', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ message: userMessage })
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                message: userMessage,
+                                context: context 
+                            })
                         });
                         
                         const data = await response.json();
                         
-                        // Add AI response
                         this.chatMessages.push({
                             sender: 'ai',
-                            text: data.response || 'Sorry, I could not process your request.',
+                            text: data.response || 'Sorry, I could not understand that. Can you please rephrase?',
                             time: new Date().toLocaleTimeString()
                         });
                         
                     } catch (error) {
-                        console.error('Chat error:', error);
                         this.chatMessages.push({
                             sender: 'ai',
-                            text: 'Sorry, I encountered an error. Please try again.',
+                            text: 'I apologize, but I am having technical difficulties. Please try again in a moment.',
                             time: new Date().toLocaleTimeString()
                         });
                     } finally {
@@ -675,9 +873,309 @@
                     }
                 },
                 
+                async generateFinancialPlan() {
+                    this.loading = true;
+                    
+                    try {
+                        const response = await fetch('/api/calculate-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                income: this.financialData.income,
+                                risk: this.financialData.riskAppetite,
+                                goals: this.goals
+                            })
+                        });
+                        
+                        if (!response.ok) throw new Error('Failed to generate plan');
+                        
+                        const data = await response.json();
+                        this.updateDashboard(data);
+                        this.planGenerated = true;
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error creating your financial plan. Please try again.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                updateDashboard(data) {
+                    // Update metrics with proper risk-based calculations
+                    this.metrics.essentialExpenses = data.budget?.needs?.amount || 0;
+                    this.metrics.lifestyleExpenses = data.budget?.wants?.amount || 0;
+                    this.metrics.monthlySavings = data.budget?.savings?.amount || 0;
+                    this.metrics.emergencyFund = data.budget?.emergency_fund?.target_amount || 0;
+                    
+                    // Update budget breakdown and percentages
+                    this.budgetBreakdown = {
+                        needs: data.budget?.needs?.amount || 0,
+                        wants: data.budget?.wants?.amount || 0,
+                        savings: data.budget?.savings?.amount || 0
+                    };
+                    
+                    this.budgetPercentages = {
+                        needs: Math.round(data.budget?.needs?.percentage || 0),
+                        wants: Math.round(data.budget?.wants?.percentage || 0),
+                        savings: Math.round(data.budget?.savings?.percentage || 0)
+                    };
+                    
+                    this.emergencyDetails = {
+                        months: Math.round(data.budget?.emergency_fund?.months_coverage || 6)
+                    };
+                    
+                    // Update investment details
+                    if (data.investments?.allocation) {
+                        this.portfolioAllocation = {};
+                        Object.keys(data.investments.allocation).forEach(key => {
+                            this.portfolioAllocation[key] = data.investments.allocation[key].percentage;
+                        });
+                        this.updateInvestmentDetails(data.investments);
+                    }
+                    
+                    // Update charts
+                    this.$nextTick(() => {
+                        this.updateBudgetChart();
+                        this.updateInvestmentChart();
+                    });
+                },
+                
+                updateInvestmentDetails(investments) {
+                    const savingsAmount = this.metrics.monthlySavings;
+                    this.investmentDetails = [];
+                    this.totalMonthlyInvestment = 0;
+                    this.totalFiveYearValue = 0;
+                    
+                    Object.keys(investments.allocation || {}).forEach(category => {
+                        const allocation = investments.allocation[category];
+                        const monthlyAmount = allocation.amount;
+                        const expectedReturn = this.getExpectedReturn(category);
+                        
+                        const oneYearValue = monthlyAmount * 12 * (1 + expectedReturn/100);
+                        const fiveYearValue = this.calculateFutureValue(monthlyAmount, expectedReturn, 5);
+                        
+                        this.investmentDetails.push({
+                            name: this.getInvestmentName(category),
+                            monthly: monthlyAmount,
+                            return: expectedReturn,
+                            risk: this.getRiskLevel(category),
+                            oneYear: oneYearValue,
+                            fiveYear: fiveYearValue,
+                            description: this.getInvestmentDescription(category)
+                        });
+                        
+                        this.totalMonthlyInvestment += monthlyAmount;
+                        this.totalFiveYearValue += fiveYearValue;
+                    });
+                    
+                    this.totalProfit = this.totalFiveYearValue - (this.totalMonthlyInvestment * 12 * 5);
+                },
+                
+                getExpectedReturn(category) {
+                    const returns = {
+                        'equity': 12, 'debt': 7, 'gold': 8, 'liquid': 4
+                    };
+                    return returns[category] || 8;
+                },
+                
+                getRiskLevel(category) {
+                    const risks = {
+                        'equity': 'High Risk', 'debt': 'Low Risk', 'gold': 'Medium Risk', 'liquid': 'Very Safe'
+                    };
+                    return risks[category] || 'Medium Risk';
+                },
+                
+                getInvestmentName(category) {
+                    const names = {
+                        'equity': 'Stock Market Funds', 'debt': 'Safe Bond Funds', 
+                        'gold': 'Gold Investment', 'liquid': 'Emergency Savings'
+                    };
+                    return names[category] || category;
+                },
+                
+                getInvestmentDescription(category) {
+                    const descriptions = {
+                        'equity': 'Invests in company shares for long-term wealth building',
+                        'debt': 'Safe government and corporate bonds with steady returns',
+                        'gold': 'Gold ETFs and digital gold for portfolio diversification',
+                        'liquid': 'Liquid funds and savings for emergency situations'
+                    };
+                    return descriptions[category] || 'Investment option for your portfolio';
+                },
+                
+                calculateFutureValue(monthlyAmount, annualReturn, years) {
+                    const monthlyReturn = annualReturn / 12 / 100;
+                    const months = years * 12;
+                    return monthlyAmount * (Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn * (1 + monthlyReturn);
+                },
+                
+                updateBudgetChart() {
+                    const ctx = document.getElementById('budgetChart');
+                    if (!ctx) return;
+                    
+                    if (this.budgetChart) this.budgetChart.destroy();
+                    
+                    this.budgetChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [
+                                `Essential Expenses (${this.budgetPercentages.needs}%)`, 
+                                `Fun & Lifestyle (${this.budgetPercentages.wants}%)`, 
+                                `Savings & Investment (${this.budgetPercentages.savings}%)`
+                            ],
+                            datasets: [{
+                                data: [this.budgetBreakdown.needs, this.budgetBreakdown.wants, this.budgetBreakdown.savings],
+                                backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'],
+                                borderWidth: 3,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { padding: 20, font: { size: 12 } } }
+                            }
+                        }
+                    });
+                },
+                
+                updateInvestmentChart() {
+                    const ctx = document.getElementById('investmentChart');
+                    if (!ctx) return;
+                    
+                    if (this.investmentChart) this.investmentChart.destroy();
+                    
+                    const categories = Object.keys(this.portfolioAllocation);
+                    const values = Object.values(this.portfolioAllocation);
+                    
+                    this.investmentChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: categories.map(cat => this.getInvestmentName(cat)),
+                            datasets: [{
+                                data: values,
+                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#6b7280'],
+                                borderRadius: 8,
+                                borderSkipped: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { callback: function(value) { return value + '%'; } }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                // Goal Management
+                addGoal() {
+                    if (!this.newGoal.name || !this.newGoal.amount || !this.newGoal.timeYears) {
+                        alert('Please fill all goal information');
+                        return;
+                    }
+                    
+                    const monthlyRequired = this.calculateGoalSIP(
+                        parseFloat(this.newGoal.amount), 
+                        parseFloat(this.newGoal.timeYears)
+                    );
+                    
+                    const goal = {
+                        name: this.newGoal.name,
+                        target_amount: parseFloat(this.newGoal.amount),
+                        time_horizon_years: parseFloat(this.newGoal.timeYears),
+                        current_corpus: 0,
+                        monthly_sip_required: monthlyRequired,
+                        feasibility_score: this.calculateFeasibilityScore(monthlyRequired)
+                    };
+                    
+                    this.goals.push(goal);
+                    this.newGoal = { name: '', amount: '', timeYears: '' };
+                },
+                
+                removeGoal(index) {
+                    this.goals.splice(index, 1);
+                },
+                
+                calculateGoalSIP(amount, years) {
+                    const monthlyReturn = 0.10 / 12; // 10% annual return
+                    const months = years * 12;
+                    return Math.round(amount * monthlyReturn / (Math.pow(1 + monthlyReturn, months) - 1));
+                },
+                
+                calculateFeasibilityScore(monthlyRequired) {
+                    const incomePercentage = (monthlyRequired / this.financialData.income) * 100;
+                    if (incomePercentage <= 5) return 100;
+                    else if (incomePercentage <= 10) return 80;
+                    else if (incomePercentage <= 15) return 60;
+                    else if (incomePercentage <= 20) return 40;
+                    else return 20;
+                },
+                
+                getGoalCardClass(goal) {
+                    const score = goal.feasibility_score;
+                    if (score >= 80) return 'border-green-200 bg-green-50';
+                    else if (score >= 60) return 'border-yellow-200 bg-yellow-50';
+                    else return 'border-red-200 bg-red-50';
+                },
+                
+                getGoalStatus(goal) {
+                    const score = goal.feasibility_score;
+                    if (score >= 80) return 'Easy to Achieve';
+                    else if (score >= 60) return 'Possible with Effort';
+                    else return 'Very Challenging';
+                },
+                
+                getGoalStatusBadge(goal) {
+                    const score = goal.feasibility_score;
+                    if (score >= 80) return 'bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs';
+                    else if (score >= 60) return 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs';
+                    else return 'bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs';
+                },
+                
+                getFeasibilityColor(goal) {
+                    const score = goal.feasibility_score;
+                    if (score >= 80) return 'text-green-600';
+                    else if (score >= 60) return 'text-yellow-600';
+                    else return 'text-red-600';
+                },
+                
+                getFeasibilityText(goal) {
+                    return goal.feasibility_score + '%';
+                },
+                
+                getGoalAdvice(goal) {
+                    const score = goal.feasibility_score;
+                    const monthlyRequired = goal.monthly_sip_required;
+                    const income = this.financialData.income;
+                    
+                    if (score >= 80) {
+                        return `✅ <strong>Great Goal!</strong> This needs only ${Math.round((monthlyRequired/income)*100)}% of your income. You can easily achieve this.`;
+                    } else if (score >= 60) {
+                        return `⚠️ <strong>Possible but needs discipline.</strong> This requires ${Math.round((monthlyRequired/income)*100)}% of your income. Consider extending timeline to ${goal.time_horizon_years + 1} years to make it easier.`;
+                    } else {
+                        const suggestedYears = Math.ceil(goal.time_horizon_years * 1.5);
+                        const newSIP = this.calculateGoalSIP(goal.target_amount, suggestedYears);
+                        return `❌ <strong>Very challenging with current income.</strong> Consider extending to ${suggestedYears} years (₹${this.formatNumber(newSIP)}/month) or increase your income first.`;
+                    }
+                },
+                
+                // Utility Functions
                 formatCurrency(amount) {
                     if (!amount) return '₹0';
                     return '₹' + Math.round(amount).toLocaleString('en-IN');
+                },
+                
+                formatNumber(amount) {
+                    if (!amount) return '0';
+                    return Math.round(amount).toLocaleString('en-IN');
                 },
                 
                 // Initialize dashboard

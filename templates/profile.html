@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyMentor - Profile Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard" class="text-white hover:text-gray-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                </div>
+                <h1 class="text-xl font-bold">Profile Settings</h1>
+                <div></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8" x-data="profileData()">
+        <div class="grid lg:grid-cols-3 gap-8">
+            
+            <!-- Profile Information -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-user-circle mr-3 text-blue-600"></i>
+                        Personal Information
+                    </h2>
+                    
+                    <form @submit.prevent="updateProfile">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">Full Name</label>
+                                <input type="text" x-model="profile.fullName" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                                       placeholder="Enter your full name">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                                <input type="email" x-model="profile.email" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 bg-gray-100" 
+                                       readonly>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">Age</label>
+                                <input type="number" x-model="profile.age" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                                       placeholder="Enter your age">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">City</label>
+                                <input type="text" x-model="profile.city" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                                       placeholder="Enter your city">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">Occupation</label>
+                                <input type="text" x-model="profile.occupation" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                                       placeholder="e.g., Software Engineer">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">Experience (Years)</label>
+                                <input type="number" x-model="profile.experience" 
+                                       class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                                       placeholder="Years of work experience">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button type="submit" :disabled="saving"
+                                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                                <i class="fas fa-save mr-2"></i>
+                                <span x-text="saving ? 'Saving...' : 'Save Changes'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Financial Preferences -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-cog mr-3 text-green-600"></i>
+                        Financial Preferences
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Investment Approach</label>
+                            <select x-model="preferences.investmentApproach" 
+                                    class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-green-500 focus:outline-none">
+                                <option value="conservative">Conservative - I prefer safe investments</option>
+                                <option value="moderate">Moderate - I want balanced growth</option>
+                                <option value="aggressive">Aggressive - I want maximum growth</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Financial Goals Priority</label>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.priorities" value="retirement" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    Retirement Planning
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.priorities" value="house" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    House Purchase
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.priorities" value="education" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    Education Fund
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.priorities" value="emergency" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    Emergency Fund
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Notification Preferences</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.notifications.sip_reminders" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    SIP Investment Reminders
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.notifications.goal_updates" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    Goal Progress Updates
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="preferences.notifications.market_news" 
+                                           class="mr-2 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    Financial Market News
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Financial Health Score -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-heartbeat mr-3 text-red-600"></i>
+                        Financial Health Score
+                    </h3>
+                    
+                    <div class="text-center mb-6">
+                        <div class="relative w-32 h-32 mx-auto mb-4">
+                            <svg class="w-32 h-32 transform -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                                <circle cx="64" cy="64" r="56" stroke="#10b981" stroke-width="8" fill="none"
+                                        :stroke-dasharray="`${healthScore * 3.51} 351`" 
+                                        stroke-linecap="round"/>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-3xl font-bold text-green-600" x-text="healthScore"></span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600" x-text="getHealthScoreText()"></p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="text-sm text-gray-600">Emergency Fund</span>
+                            <span class="font-semibold" :class="getScoreColor('emergency')" x-text="scores.emergency + '/25'"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="text-sm text-gray-600">Savings Rate</span>
+                            <span class="font-semibold" :class="getScoreColor('savings')" x-text="scores.savings + '/25'"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="text-sm text-gray-600">Goal Planning</span>
+                            <span class="font-semibold" :class="getScoreColor('goals')" x-text="scores.goals + '/25'"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="text-sm text-gray-600">Investment Diversity</span>
+                            <span class="font-semibold" :class="getScoreColor('investments')" x-text="scores.investments + '/25'"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-lightning-bolt mr-3 text-yellow-600"></i>
+                        Quick Actions
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                            <i class="fas fa-download text-blue-600 mr-3"></i>
+                            Export My Financial Data
+                        </button>
+                        <button class="w-full text-left p-3 bg-green-50 rounded-lg hover:bg-green-100 transition">
+                            <i class="fas fa-chart-line text-green-600 mr-3"></i>
+                            View Investment Portfolio
+                        </button>
+                        <button class="w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
+                            <i class="fas fa-bullseye text-purple-600 mr-3"></i>
+                            Update Financial Goals
+                        </button>
+                        <button class="w-full text-left p-3 bg-red-50 rounded-lg hover:bg-red-100 transition">
+                            <i class="fas fa-trash text-red-600 mr-3"></i>
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function profileData() {
+            return {
+                profile: {
+                    fullName: '{{ user.full_name or "" }}',
+                    email: '{{ user.email }}',
+                    age: {{ user.age or 'null' }},
+                    city: '{{ user.city or "" }}',
+                    occupation: '{{ user.occupation or "" }}',
+                    experience: {{ user.experience or 'null' }}
+                },
+                
+                preferences: {
+                    investmentApproach: '{{ user.risk_appetite or "moderate" }}',
+                    priorities: [],
+                    notifications: {
+                        sip_reminders: true,
+                        goal_updates: true,
+                        market_news: false
+                    }
+                },
+                
+                saving: false,
+                healthScore: 75,
+                scores: {
+                    emergency: 20,
+                    savings: 18,
+                    goals: 22,
+                    investments: 15
+                },
+                
+                async updateProfile() {
+                    this.saving = true;
+                    
+                    try {
+                        const response = await fetch('/api/update-profile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                profile: this.profile,
+                                preferences: this.preferences
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            this.showNotification('Profile updated successfully!', 'success');
+                        } else {
+                            throw new Error('Failed to update');
+                        }
+                    } catch (error) {
+                        this.showNotification('Failed to update profile', 'error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+                
+                getHealthScoreText() {
+                    if (this.healthScore >= 80) return 'Excellent Financial Health';
+                    else if (this.healthScore >= 60) return 'Good Financial Health';
+                    else if (this.healthScore >= 40) return 'Fair Financial Health';
+                    else return 'Needs Improvement';
+                },
+                
+                getScoreColor(category) {
+                    const score = this.scores[category];
+                    if (score >= 20) return 'text-green-600';
+                    else if (score >= 15) return 'text-yellow-600';
+                    else return 'text-red-600';
+                },
+                
+                showNotification(message, type) {
+                    // Simple notification system
+                    const notification = document.createElement('div');
+                    notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
+                        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                    }`;
+                    notification.textContent = message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => notification.remove(), 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
