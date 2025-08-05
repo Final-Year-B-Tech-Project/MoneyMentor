@@ -6,7 +6,7 @@ from datetime import datetime
 class LLMAgent:
     def __init__(self):
         self.api_key = os.environ.get('OPENROUTER_API_KEY', 'your-openrouter-api-key')
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.base_url = "https://openrouter.ai/api/v1"
         self.model = os.environ.get('OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free')
         
         # Fallback responses for when API is unavailable
